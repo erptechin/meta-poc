@@ -1,9 +1,10 @@
+import asyncio
 import json
 import os
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,10 @@ APP_ID = os.getenv("META_ADS_CLIENT_ID")
 APP_SECRET = os.getenv("META_ADS_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("META_ADS_REDIRECT_URI")
 BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
+
+
+def get_httpx_client(request: Request):
+    return request.app.state.httpx_client
 
 
 def _format_status_row(integration):
@@ -73,26 +78,25 @@ def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_d
     return schemas.RevokeAccessResponse(status="success", message="Access revoked")
 
 
-async def _fetch_instagram_accounts(business_id: str, access_token: str) -> list:
+async def _fetch_instagram_accounts(client: httpx.AsyncClient, business_id: str, access_token: str) -> list:
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"https://graph.facebook.com/{META_API_VERSION}/{business_id}/instagram_accounts",
-                params={"fields": "id,username"},
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-            r.raise_for_status()
-            return (r.json().get("data") or [])
+        r = await client.get(
+            f"https://graph.facebook.com/{META_API_VERSION}/{business_id}/instagram_accounts",
+            params={"fields": "id,username"},
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        r.raise_for_status()
+        return (r.json().get("data") or [])
     except Exception:
         return []
 
 
 @router.get("/meta/auth/callback")
 async def meta_auth_callback(
-    request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None),
     db: Session = Depends(get_db),
+    client: httpx.AsyncClient = Depends(get_httpx_client),
 ):
     """GET /v1/campaign-ads/meta/auth/callback - OAuth callback from Meta. Redirects to app."""
     base_url = BASE_APP_UI_URL
@@ -115,7 +119,6 @@ async def meta_auth_callback(
     else:
         user_id = int(user_id)
 
-    client = request.app.state.httpx_client
     try:
         tr = await client.get(
             f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
