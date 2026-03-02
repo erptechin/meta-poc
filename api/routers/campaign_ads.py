@@ -49,7 +49,6 @@ def get_campaign_ads_status(workspace_id: int, db: Session = Depends(get_db)):
     rows = crud.get_integrations_by_workspace(db, workspace_id=workspace_id)
     return [_format_status_row(r) for r in rows]
 
-
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
 def meta_auth(body: schemas.MetaAuthRequest):
     """POST /v1/campaign-ads/meta/auth - return Meta OAuth URL."""
@@ -67,8 +66,8 @@ def meta_auth(body: schemas.MetaAuthRequest):
 
 @router.post("/revoke-access", response_model=schemas.RevokeAccessResponse)
 def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_db)):
-    """POST /v1/campaign-ads/revoke-access - revoke integration by tokenRecord_id."""
-    row = crud.revoke_integration(db, integration_id=body.tokenRecord_id)
+    """POST /v1/campaign-ads/revoke-access - revoke integration by integration_id."""
+    row = crud.revoke_integration(db, integration_id=body.integration_id)
     if not row:
         raise HTTPException(status_code=400, detail="Error revoking access")
     return schemas.RevokeAccessResponse(status="success", message="Access revoked")
@@ -90,6 +89,7 @@ async def _fetch_instagram_accounts(business_id: str, access_token: str) -> list
 
 @router.get("/meta/auth/callback")
 async def meta_auth_callback(
+    request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None),
     db: Session = Depends(get_db),
@@ -115,105 +115,120 @@ async def meta_auth_callback(
     else:
         user_id = int(user_id)
 
+    client = request.app.state.httpx_client
     try:
-        async with httpx.AsyncClient() as client:
-            tr = await client.get(
-                f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
-                params={"client_id": APP_ID, "redirect_uri": REDIRECT_URI, "client_secret": APP_SECRET, "code": code},
-            )
-            tr.raise_for_status()
-            short_lived = tr.json().get("access_token")
-            if not short_lived:
-                raise ValueError("No access_token in token response")
-            lr = await client.get(
-                f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
-                params={"grant_type": "fb_exchange_token", "client_id": APP_ID, "client_secret": APP_SECRET, "fb_exchange_token": short_lived},
-            )
-            lr.raise_for_status()
-            long_lived_resp = lr.json()
-            long_lived = long_lived_resp.get("access_token")
-            if not long_lived:
-                raise ValueError("No access_token in long-lived response")
-            tokens = {"access_token": long_lived}
-            # Store full long-lived response (expires_in, token_type, refresh_token if any)
-            refresh_tokens = {k: v for k, v in long_lived_resp.items() if k != "access_token"} or None
+        tr = await client.get(
+            f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
+            params={"client_id": APP_ID, "redirect_uri": REDIRECT_URI, "client_secret": APP_SECRET, "code": code},
+        )
+        tr.raise_for_status()
+        short_lived = tr.json().get("access_token")
+        if not short_lived:
+            raise ValueError("No access_token in token response")
+        lr = await client.get(
+            f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
+            params={"grant_type": "fb_exchange_token", "client_id": APP_ID, "client_secret": APP_SECRET, "fb_exchange_token": short_lived},
+        )
+        lr.raise_for_status()
+        long_lived_resp = lr.json()
+        long_lived = long_lived_resp.get("access_token")
+        if not long_lived:
+            raise ValueError("No access_token in long-lived response")
+        tokens = {"access_token": long_lived}
+        refresh_tokens = {k: v for k, v in long_lived_resp.items() if k != "access_token"} or None
 
-            me_r = await client.get(
-                f"https://graph.facebook.com/{META_API_VERSION}/me",
-                params={"access_token": short_lived, "fields": "id,name,email,picture,businesses,adaccounts{id,account_id,name,business,currency,timezone_id,timezone_name}"},
+        me_r = await client.get(
+            f"https://graph.facebook.com/{META_API_VERSION}/me",
+            params={"access_token": short_lived, "fields": "id,name,email,picture,businesses,adaccounts{id,account_id,name,business,currency,timezone_id,timezone_name}"},
+        )
+        me_r.raise_for_status()
+        user_info = me_r.json()
+        adaccounts_data = (user_info.get("adaccounts") or {}).get("data") or []
+        user_detail = {
+            "userInfo": user_info,
+            "adaccounts": user_info.get("adaccounts"),
+            "accounts": {"data": []},
+            "instagramAccounts": {"data": []},
+            "businesses": user_info.get("businesses"),
+        }
+        page_ok = False
+        insta_ok = False
+
+        # Parallel fetch: promote_pages + instagram_accounts per ad account
+        async def _empty_insta():
+            return []
+
+        async def fetch_pages_and_insta(acc):
+            pid = acc.get("id")
+            biz = acc.get("business")
+            bid = biz.get("id") if isinstance(biz, dict) else None
+            pr_task = client.get(
+                f"https://graph.facebook.com/{META_API_VERSION}/{pid}/promote_pages",
+                params={"access_token": short_lived},
             )
-            me_r.raise_for_status()
-            user_info = me_r.json()
-            adaccounts_data = (user_info.get("adaccounts") or {}).get("data") or []
-            user_detail = {
-                "userInfo": user_info,
-                "adaccounts": user_info.get("adaccounts"),
-                "accounts": {"data": []},
-                "instagramAccounts": {"data": []},
-                "businesses": user_info.get("businesses"),
-            }
-            page_ok = False
-            insta_ok = False
-            for acc in adaccounts_data:
-                pid = acc.get("id")
-                pr = await client.get(
-                    f"https://graph.facebook.com/{META_API_VERSION}/{pid}/promote_pages",
-                    params={"access_token": short_lived},
-                )
+            insta_task = _fetch_instagram_accounts(client, bid, long_lived) if bid else _empty_insta()
+            pr, il = await asyncio.gather(pr_task, insta_task)
+            return acc, pr, (il if isinstance(il, list) else [])
+
+        if adaccounts_data:
+            results = await asyncio.gather(
+                *[fetch_pages_and_insta(acc) for acc in adaccounts_data],
+                return_exceptions=True,
+            )
+            for item in results:
+                if isinstance(item, Exception):
+                    continue
+                acc, pr, il = item
                 data = (pr.json() if pr.is_success else {}).get("data") or []
                 for p in data:
                     user_detail["accounts"]["data"].append({**p, "account_id": acc.get("account_id")})
                 if data:
                     page_ok = True
-                biz = acc.get("business")
-                bid = biz.get("id") if isinstance(biz, dict) else None
-                if bid:
-                    il = await _fetch_instagram_accounts(bid, long_lived)
-                    for i in il:
-                        user_detail["instagramAccounts"]["data"].append({**i, "account_id": acc.get("account_id")})
-                    if il:
-                        insta_ok = True
+                for i in il:
+                    user_detail["instagramAccounts"]["data"].append({**i, "account_id": acc.get("account_id")})
+                if il:
+                    insta_ok = True
 
-            if not user_detail["accounts"]["data"]:
-                page_ok = False
-                ar = await client.get(
-                    f"https://graph.facebook.com/{META_API_VERSION}/me/accounts",
-                    params={"access_token": short_lived, "fields": "id,name,access_token"},
-                )
-                if ar.is_success:
-                    alist = (ar.json() or {}).get("data") or []
-                    for p in alist:
-                        user_detail["accounts"]["data"].append({"id": p.get("id"), "name": p.get("name")})
-                    if not user_detail["instagramAccounts"]["data"] and alist:
-                        for pg in alist:
-                            pt = pg.get("access_token")
-                            if not pt:
-                                continue
-                            rr = await client.get(
-                                f"https://graph.facebook.com/{META_API_VERSION}/{pg.get('id')}",
-                                params={"access_token": pt, "fields": "name,instagram_accounts{name}"},
-                            )
-                            if rr.is_success:
-                                ia = (rr.json() or {}).get("instagram_accounts") or {}
-                                for i in (ia.get("data") or []):
-                                    user_detail["instagramAccounts"]["data"].append({**i, "page_id": pg.get("id")})
+        if not user_detail["accounts"]["data"]:
+            page_ok = False
+            ar = await client.get(
+                f"https://graph.facebook.com/{META_API_VERSION}/me/accounts",
+                params={"access_token": short_lived, "fields": "id,name,access_token"},
+            )
+            if ar.is_success:
+                alist = (ar.json() or {}).get("data") or []
+                for p in alist:
+                    user_detail["accounts"]["data"].append({"id": p.get("id"), "name": p.get("name")})
+                if not user_detail["instagramAccounts"]["data"] and alist:
+                    for pg in alist:
+                        pt = pg.get("access_token")
+                        if not pt:
+                            continue
+                        rr = await client.get(
+                            f"https://graph.facebook.com/{META_API_VERSION}/{pg.get('id')}",
+                            params={"access_token": pt, "fields": "name,instagram_accounts{name}"},
+                        )
+                        if rr.is_success:
+                            ia = (rr.json() or {}).get("instagram_accounts") or {}
+                            for i in (ia.get("data") or []):
+                                user_detail["instagramAccounts"]["data"].append({**i, "page_id": pg.get("id")})
 
-            msg = ""
-            if not user_detail["instagramAccounts"]["data"] and not user_detail["accounts"]["data"]:
-                return RedirectResponse(url=f"{base_url}/campaign-failure?message={quote('No page Ids and no instagram accounts found.')}", status_code=302)
-            if not user_detail["instagramAccounts"]["data"]:
-                msg = "No instagram accounts are found for any ad account."
-                if page_ok:
-                    msg = f"For some ad accounts pageId are not found AND {msg}"
-            elif not user_detail["accounts"]["data"]:
-                msg = "No page Ids are found for any ad account."
-                if insta_ok:
-                    msg = f"For some ad accounts instagram accounts are not found AND {msg}"
-            elif not page_ok or not insta_ok:
-                msg = "For some ad accounts pageId or instagram accounts are not found"
+        msg = ""
+        if not user_detail["instagramAccounts"]["data"] and not user_detail["accounts"]["data"]:
+            return RedirectResponse(url=f"{base_url}/campaign-failure?message={quote('No page Ids and no instagram accounts found.')}", status_code=302)
+        if not user_detail["instagramAccounts"]["data"]:
+            msg = "No instagram accounts are found for any ad account."
+            if page_ok:
+                msg = f"For some ad accounts pageId are not found AND {msg}"
+        elif not user_detail["accounts"]["data"]:
+            msg = "No page Ids are found for any ad account."
+            if insta_ok:
+                msg = f"For some ad accounts instagram accounts are not found AND {msg}"
+        elif not page_ok or not insta_ok:
+            msg = "For some ad accounts pageId or instagram accounts are not found"
 
-            ads_list = [{"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")} for a in adaccounts_data if a.get("account_id")]
-            crud.create_or_update_meta_integration(db=db, user_id=user_id, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
-            return RedirectResponse(url=f"{base_url}/campaign-success?message={quote(msg)}", status_code=302)
+        ads_list = [{"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")} for a in adaccounts_data if a.get("account_id")]
+        crud.create_or_update_meta_integration(db=db, user_id=user_id, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
+        return RedirectResponse(url=f"{base_url}/campaign-success?message={quote(msg)}", status_code=302)
     except Exception as ex:
         return RedirectResponse(url=f"{base_url}/campaign-failure?message={quote(str(ex) or 'Unexpected error integrating META.')}", status_code=302)

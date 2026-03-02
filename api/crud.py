@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import models
 
 
@@ -6,9 +6,10 @@ import models
 def get_integrations_by_workspace(db: Session, workspace_id: int):
     return (
         db.query(models.Integration)
+        .options(joinedload(models.Integration.user))
         .filter(
             models.Integration.workspace_id == workspace_id,
-            models.Integration.access_removed == False,
+            models.Integration.access_removed.is_(False),
         )
         .all()
     )

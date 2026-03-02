@@ -46,7 +46,7 @@ class MetaAuthResponse(BaseModel):
 
 class RevokeAccessRequest(BaseModel):
     workspace_id: int
-    tokenRecord_id: int
+    integration_id: int
 
 
 class RevokeAccessResponse(BaseModel):

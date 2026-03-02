@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { AdService, MetaService, DeleteIntegrationService } from "../services/platformService";
@@ -13,7 +13,7 @@ const PLATFORM_CONFIG = {
 const WORKSPACE_ID = 1;
 
 
-function IntegratedView({ item }) {
+const IntegratedView = React.memo(function IntegratedView({ item }) {
     const raw = item.ad_login_userinfo;
     const userInfo = raw?.userInfo ?? (raw && (raw.name || raw.email) ? raw : null);
     const pictureUrl = userInfo?.picture?.data?.url ?? (typeof userInfo?.picture === "string" ? userInfo.picture : null);
@@ -54,7 +54,7 @@ function IntegratedView({ item }) {
             )}
         </div>
     );
-}
+});
 
 export default function PlatformIntegration() {
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -101,28 +101,28 @@ export default function PlatformIntegration() {
         onError: (err) => console.error("Delete failed:", err),
     });
 
-    const handleAddAccount = (platformName) => {
+    const handleAddAccount = useCallback((platformName) => {
         if (platformName === "META") {
             mutateMeta.mutate({ workspace_id: WORKSPACE_ID });
         } else {
             toast.error(`Integration not supported for ${platformName}`);
         }
-    };
+    }, [mutateMeta]);
 
-    const handleDelete = (id) => {
+    const handleDelete = useCallback((id) => {
         if (id == null) return;
         setDeleteConfirmId(id);
-    };
+    }, []);
 
-    const confirmDelete = () => {
+    const confirmDelete = useCallback(() => {
         if (deleteConfirmId == null) return;
         mutateDelete.mutate(
-            { workspace_id: WORKSPACE_ID, tokenRecord_id: deleteConfirmId },
+            { workspace_id: WORKSPACE_ID, integration_id: deleteConfirmId },
             { onSettled: () => setDeleteConfirmId(null) }
         );
-    };
+    }, [deleteConfirmId, mutateDelete]);
 
-    const cancelDelete = () => setDeleteConfirmId(null);
+    const cancelDelete = useCallback(() => setDeleteConfirmId(null), []);
 
     if (isLoading) {
         return (
