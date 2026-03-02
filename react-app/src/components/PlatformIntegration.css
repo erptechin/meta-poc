@@ -1,0 +1,288 @@
+/* Platform Integration – design tokens */
+.platform-integration {
+  --pi-bg: #f8fafc;
+  --pi-card-bg: #fff;
+  --pi-border: #e2e8f0;
+  --pi-text: #1e293b;
+  --pi-text-muted: #64748b;
+  --pi-accent: #3b82f6;
+  --pi-accent-hover: #2563eb;
+  --pi-success: #22c55e;
+  --pi-error: #ef4444;
+  --pi-radius: 12px;
+  --pi-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --pi-font: "DM Sans", system-ui, -apple-system, sans-serif;
+
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  font-family: var(--pi-font);
+  color: var(--pi-text);
+  background: var(--pi-bg);
+}
+
+.platform-integration__title {
+  margin: 0 0 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* List view */
+.platform-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pi-border);
+  border-radius: var(--pi-radius);
+  background: var(--pi-card-bg);
+  box-shadow: var(--pi-shadow);
+  overflow: hidden;
+}
+
+.platform-list__row {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 0;
+  border-bottom: 1px solid var(--pi-border);
+  min-height: 60px;
+}
+
+.platform-list__row:last-child {
+  border-bottom: none;
+}
+
+.platform-list__row--integrated {
+  background: linear-gradient(to right, #f0fdf4, var(--pi-card-bg));
+}
+
+.platform-list__cell {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+}
+
+.platform-list__cell--platform {
+  min-width: 140px;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  border-right: 1px solid var(--pi-border);
+}
+
+.platform-list__cell--content {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.platform-list__cell--actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+  border-left: 1px solid var(--pi-border);
+}
+
+.platform-list__empty {
+  font-size: 0.875rem;
+  color: var(--pi-text-muted);
+}
+
+.platform-list__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.platform-list__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--pi-text);
+}
+
+.platform-list__btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.platform-list__btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.platform-list__btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.platform-list__btn--add,
+.platform-list__btn--integrate {
+  color: #fff;
+  background: var(--pi-accent);
+}
+
+.platform-list__btn--add:hover:not(:disabled),
+.platform-list__btn--integrate:hover:not(:disabled) {
+  background: var(--pi-accent-hover);
+}
+
+.platform-list__btn--delete {
+  color: #fff;
+  background: var(--pi-error);
+}
+
+.platform-list__btn--delete:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.platform-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.integrated-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+}
+
+.integrated-view__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pi-border);
+}
+
+.integrated-view__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.integrated-view__user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.integrated-view__user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--pi-text);
+}
+
+.integrated-view__user-email {
+  font-size: 0.75rem;
+  color: var(--pi-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.integrated-view__accounts-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pi-text-muted);
+}
+
+.integrated-view__accounts-list {
+  margin: 0.25rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+  color: var(--pi-text);
+  line-height: 1.5;
+}
+
+.integrated-view__account-item {
+  margin-bottom: 0.2rem;
+}
+
+.integrated-view__account-item:last-child {
+  margin-bottom: 0;
+}
+
+.platform-integration__loading,
+.platform-integration__empty,
+.platform-integration__error {
+  padding: 2rem;
+  text-align: center;
+  color: var(--pi-text-muted);
+}
+
+.platform-integration__empty code,
+.platform-integration__error code {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.9em;
+  background: var(--pi-border);
+  border-radius: 4px;
+}
+
+.platform-integration__error p {
+  color: var(--pi-error);
+  margin: 0.5rem 0 0;
+}
+
+.platform-integration__error h2,
+.platform-integration__empty h2 {
+  margin: 0;
+  color: var(--pi-text);
+  font-size: 1.25rem;
+}
+
+/* Delete confirmation popup */
+.delete-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.delete-confirm-dialog {
+  background: var(--pi-card-bg);
+  border-radius: var(--pi-radius);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 100%;
+}
+
+.delete-confirm__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--pi-text);
+}
+
+.delete-confirm__message {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: var(--pi-text-muted);
+  line-height: 1.5;
+}
+
+.delete-confirm__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.delete-confirm__btn {
+  min-width: 80px;
+}
