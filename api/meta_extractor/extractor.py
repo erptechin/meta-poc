@@ -10,7 +10,7 @@ from . import config
 def extract_ad_accounts(access_token: str, client: httpx.Client | None = None) -> list[dict]:
     """Extract ad accounts for the authenticated user."""
     url = f"{config.GRAPH_BASE_URL}/me/adaccounts"
-    params = {"access_token": access_token, "fields": config.AD_ACCOUNT_FIELDS}
+    params = {"access_token": access_token, "fields": "id,account_id,name,account_status,currency,timezone_name"}
     own = client is None
     if own:
         client = httpx.Client(timeout=config.REQUEST_TIMEOUT)
@@ -52,7 +52,7 @@ def extract_ad_sets(
     """Extract ad sets for an ad account."""
     aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
     url = f"{config.GRAPH_BASE_URL}/{aid}/adsets"
-    params = {"access_token": access_token, "fields": config.ADSET_FIELDS}
+    params = {"access_token": access_token, "fields": "id,name,status,daily_budget,lifetime_budget,targeting,created_time,updated_time"}
     own = client is None
     if own:
         client = httpx.Client(timeout=config.REQUEST_TIMEOUT)
@@ -73,7 +73,7 @@ def extract_ads(
     """Extract ads for an ad account."""
     aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
     url = f"{config.GRAPH_BASE_URL}/{aid}/ads"
-    params = {"access_token": access_token, "fields": config.AD_FIELDS}
+    params = {"access_token": access_token, "fields": "id,name,status,creative{id,name},created_time,updated_time"}
     own = client is None
     if own:
         client = httpx.Client(timeout=config.REQUEST_TIMEOUT)

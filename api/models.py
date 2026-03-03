@@ -45,14 +45,11 @@ class Integration(Base):
 
 
 class PlatformData(Base):
-    """Stored Meta ETL result per workspace (ad_accounts, campaigns, adsets, ads)."""
+    """Stored Meta ETL result per workspace (campaigns only)."""
     __tablename__ = "platform_data"
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(Integer, nullable=False, index=True, unique=True)
-    ad_accounts = Column(JSON, nullable=True)
     campaigns = Column(JSON, nullable=True)
-    adsets = Column(JSON, nullable=True)
-    ads = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

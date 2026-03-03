@@ -44,14 +44,11 @@ CREATE TABLE IF NOT EXISTS integration (
   FOREIGN KEY (user_id) REFERENCES `user`(id)
 );
 
--- platform_data (Meta ETL result: ad_accounts, campaigns, adsets, ads)
+-- platform_data (Meta ETL result: campaigns only)
 CREATE TABLE IF NOT EXISTS platform_data (
   id INT AUTO_INCREMENT PRIMARY KEY,
   workspace_id INT NOT NULL,
-  ad_accounts JSON NULL,
   campaigns JSON NULL,
-  adsets JSON NULL,
-  ads JSON NULL,
   created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   UNIQUE KEY uq_platform_data_workspace_id (workspace_id),

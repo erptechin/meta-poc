@@ -60,14 +60,14 @@ pip install -r requirements.txt
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/platform-data/set-platform-data` | Insert/update `platform_data` in DB. Body: `{"workspace_id": N, "data": {"ad_accounts", "campaigns", "adsets", "ads"}}` |
-| POST | `/v1/platform-data/get-platform-data` | Get `platform_data` from DB. Body: `{"workspace_id": N}`. Returns `{ success, workspace_id, data }` |
+| POST | `/v1/platform-data/set-platform-data` | Insert/update `platform_data` in DB. Body: `{"workspace_id": N, "data": {"campaigns": [...]}}` |
+| POST | `/v1/platform-data/get-platform-data` | Get `platform_data` from DB. Body: `{"workspace_id": N}`. Returns `{ success, workspace_id, data: { campaigns } }`. |
 | POST | `/v1/platform-data/run-meta-etl` | Run Meta ETL (extract → transform → load), save to `platform_data` table, return data. Body: `{"workspace_id": N}` |
 
 ## Database
 
 - **Tables:** `user`, `workspace`, `integration`, `platform_data`
-- **platform_data:** One row per workspace; columns `ad_accounts`, `campaigns`, `adsets`, `ads` (JSON), aligned with Meta ETL fields (see `meta_extractor/config.py`).
+- **platform_data:** One row per workspace; column `campaigns` (JSON). Meta ETL persists only campaigns (see `meta_extractor/config.py`).
 
 ## Meta ETL (`meta_extractor`)
 

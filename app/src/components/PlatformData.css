@@ -109,3 +109,153 @@
   font-size: 2.5rem;
   line-height: 1;
 }
+
+/* Sections */
+.platform-data__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.platform-data__section {
+  background: var(--pd-card-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.platform-data__section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-family: var(--pd-font);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pd-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.platform-data__section-head:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.platform-data__section-title {
+  flex: 1;
+}
+
+.platform-data__section-count {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pd-text-muted);
+  background: var(--pd-bg);
+  border-radius: 6px;
+}
+
+.platform-data__section-chevron {
+  font-size: 0.7rem;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__section-body {
+  border-top: 1px solid var(--pd-border);
+  padding: 0;
+}
+
+.platform-data__table-wrap {
+  overflow-x: auto;
+}
+
+.platform-data__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.platform-data__table th,
+.platform-data__table td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--pd-border);
+}
+
+.platform-data__table th {
+  font-weight: 600;
+  color: var(--pd-text-muted);
+  background: var(--pd-bg);
+  white-space: nowrap;
+}
+
+.platform-data__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.platform-data__table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.platform-data__cell-id {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.platform-data__cell-name {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-data__cell-targeting {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__cell-date {
+  white-space: nowrap;
+  color: var(--pd-text-muted);
+  font-size: 0.85rem;
+}
+
+.platform-data__badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-transform: capitalize;
+  background: #f1f5f9;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__badge--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.platform-data__badge--paused {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.platform-data__badge--archived {
+  background: #f1f5f9;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__empty {
+  margin: 0;
+  padding: 1rem;
+  color: var(--pd-text-muted);
+  font-size: 0.9rem;
+}
