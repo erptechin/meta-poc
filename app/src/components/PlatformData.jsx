@@ -1,6 +1,6 @@
 import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GetDataService } from "../services/platformService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { GetDataService, RunMetaEtlService } from "../services/platformService";
 import "./PlatformData.css";
 
 const WORKSPACE_ID = 1;
@@ -16,6 +16,13 @@ export default function PlatformData() {
   } = useQuery({
     queryKey: ["platform-data", WORKSPACE_ID],
     queryFn: () => GetDataService(WORKSPACE_ID),
+  });
+
+  const runEtlMutation = useMutation({
+    mutationFn: () => RunMetaEtlService(WORKSPACE_ID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-data", WORKSPACE_ID] });
+    },
   });
 
   if (isLoading) {
@@ -45,8 +52,12 @@ export default function PlatformData() {
   }
 
   const storedData = data?.data ?? null;
-  const isList = Array.isArray(storedData);
-  const hasItems = isList ? storedData.length > 0 : storedData != null;
+  const hasStoredData =
+    storedData &&
+    typeof storedData === "object" &&
+    (([storedData.ad_accounts, storedData.campaigns, storedData.adsets, storedData.ads].some(
+      (arr) => Array.isArray(arr) && arr.length > 0
+    )));
 
   return (
     <div className="platform-data">
@@ -60,20 +71,21 @@ export default function PlatformData() {
         <button
           type="button"
           className="platform-data__refresh-btn"
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["platform-data", WORKSPACE_ID] })}
+          onClick={() => runEtlMutation.mutate()}
+          disabled={runEtlMutation.isPending}
         >
-          Refresh
+          {runEtlMutation.isPending ? "Running ETL…" : "Run ETL"}
         </button>
       </div>
       <div className="platform-data__content">
-        {hasItems ? (
+        {hasStoredData ? (
           <pre className="platform-data__json">{JSON.stringify(storedData, null, 2)}</pre>
         ) : (
           <div className="platform-data__placeholder">
             <span className="platform-data__placeholder-icon" aria-hidden>
               📊
             </span>
-            <p>No Meta integration. Connect Meta in Platform Integration, then click Refresh.</p>
+            <p>No data in DB. Connect Meta in Platform Integration, then click Run ETL to fetch and save.</p>
           </div>
         )}
       </div>

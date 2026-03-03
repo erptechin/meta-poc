@@ -7,6 +7,7 @@ import {
   REVOKE_ACCESS,
   GET_DATA,
   SET_DATA,
+  RUN_META_ETL,
 } from "./apis";
 
 export const AdService = async (workspaceId) => {
@@ -31,5 +32,10 @@ export const GetDataService = async (workspaceId) => {
 
 export const SetDataService = async (data) => {
   const res = await apiAxiosWithToken.post(SET_DATA, data);
+  return res.data;
+};
+
+export const RunMetaEtlService = async (workspaceId) => {
+  const res = await apiAxiosWithToken.post(RUN_META_ETL, { workspace_id: workspaceId });
   return res.data;
 };

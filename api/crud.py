@@ -88,3 +88,42 @@ def create_or_update_meta_integration(
     db.commit()
     db.refresh(new_row)
     return new_row
+
+
+# ----- Platform Data -----
+def get_platform_data(db: Session, workspace_id: int):
+    return db.query(models.PlatformData).filter(models.PlatformData.workspace_id == workspace_id).first()
+
+
+def create_or_update_platform_data(
+    db: Session,
+    workspace_id: int,
+    ad_accounts: list | None = None,
+    campaigns: list | None = None,
+    adsets: list | None = None,
+    ads: list | None = None,
+):
+    row = get_platform_data(db, workspace_id)
+    if row:
+        if ad_accounts is not None:
+            row.ad_accounts = ad_accounts
+        if campaigns is not None:
+            row.campaigns = campaigns
+        if adsets is not None:
+            row.adsets = adsets
+        if ads is not None:
+            row.ads = ads
+        db.commit()
+        db.refresh(row)
+        return row
+    new_row = models.PlatformData(
+        workspace_id=workspace_id,
+        ad_accounts=ad_accounts or [],
+        campaigns=campaigns or [],
+        adsets=adsets or [],
+        ads=ads or [],
+    )
+    db.add(new_row)
+    db.commit()
+    db.refresh(new_row)
+    return new_row
