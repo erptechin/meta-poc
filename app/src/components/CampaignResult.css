@@ -1,0 +1,123 @@
+/* Campaign result page – success / failure (same design tokens as PlatformIntegration) */
+.campaign-result {
+  --cr-bg: #f8fafc;
+  --cr-card-bg: #fff;
+  --cr-border: #e2e8f0;
+  --cr-text: #1e293b;
+  --cr-text-muted: #64748b;
+  --cr-accent: #3b82f6;
+  --cr-accent-hover: #2563eb;
+  --cr-success: #22c55e;
+  --cr-success-bg: #f0fdf4;
+  --cr-error: #ef4444;
+  --cr-error-bg: #fef2f2;
+  --cr-radius: 12px;
+  --cr-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --cr-font: "DM Sans", system-ui, -apple-system, sans-serif;
+
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  font-family: var(--cr-font);
+  color: var(--cr-text);
+  background: var(--cr-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.campaign-result__card {
+  background: var(--cr-card-bg);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-radius);
+  box-shadow: var(--cr-shadow);
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.campaign-result__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.campaign-result__icon--success {
+  background: var(--cr-success-bg);
+  color: var(--cr-success);
+}
+
+.campaign-result__icon--failure {
+  background: var(--cr-error-bg);
+  color: var(--cr-error);
+}
+
+.campaign-result__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--cr-text);
+}
+
+.campaign-result__subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  color: var(--cr-text-muted);
+  line-height: 1.5;
+}
+
+.campaign-result__message {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.campaign-result__message--success {
+  background: var(--cr-success-bg);
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.campaign-result__message--failure {
+  background: var(--cr-error-bg);
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.campaign-result__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.campaign-result__btn {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: var(--cr-font);
+}
+
+.campaign-result__btn--primary {
+  color: #fff;
+  background: var(--cr-accent);
+}
+
+.campaign-result__btn--primary:hover {
+  background: var(--cr-accent-hover);
+}

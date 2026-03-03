@@ -22,6 +22,9 @@ Optional: `export DATABASE_URL="mysql+mysqlconnector://user:pass@localhost:3306/
    ```
    → **http://localhost:5005**
 
+#Run ngrok
+ngrok http --url=clumplike-oswaldo-dowily.ngrok-free.dev 5005
+
 ## Endpoints (v1)
 
 | Method | Path | Description |
