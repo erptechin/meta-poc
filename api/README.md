@@ -1,6 +1,6 @@
 # FastAPI MySQL API
 
-FastAPI + SQLAlchemy + MySQL. Campaign-ads endpoints (Meta OAuth, status, revoke).
+FastAPI + SQLAlchemy + MySQL. Platform-integration endpoints (Meta OAuth, status, revoke).
 
 ## Setup
 
@@ -29,8 +29,10 @@ ngrok http --url=clumplike-oswaldo-dowily.ngrok-free.dev 5005
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/v1/campaign-ads/status/{workspace_id}` | List integrations |
-| POST | `/v1/campaign-ads/meta/auth` | Meta OAuth URL. Body: `{"workspace_id": N}` |
-| POST | `/v1/campaign-ads/revoke-access` | Revoke. Body: `{"workspace_id": N, "tokenRecord_id": N}` |
+| GET | `/v1/platform-integration/status/{workspace_id}` | List integrations |
+| POST | `/v1/platform-integration/meta/auth` | Meta OAuth URL. Body: `{"workspace_id": N}` |
+| POST | `/v1/platform-integration/revoke-access` | Revoke. Body: `{"workspace_id": N, "tokenRecord_id": N}` |
+| POST | `/v1/platform-data/set-platform-data` | Set data. Body: `{"workspace_id": N, "data": {...}}` |
+| POST | `/v1/platform-data/get-platform-data` | Run Meta ETL. Body: `{"workspace_id": N}`. Returns `{ success, workspace_id, data }`. |
 
 Env: `META_ADS_CLIENT_ID`, `META_ADS_CLIENT_SECRET`, `META_ADS_REDIRECT_URI`, `BASE_APP_UI_URL`.

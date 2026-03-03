@@ -146,6 +146,9 @@ export default function PlatformIntegration() {
     return (
         <div className="platform-integration">
             <h2 className="platform-integration__title">Platform Integration</h2>
+            <p className="platform-integration__desc">
+                Connect your ad platforms (Meta, Google, LinkedIn) to manage campaigns and sync data with your workspace.
+            </p>
             <ul className="platform-list">
                 {platforms.map((item) => (
                     <li

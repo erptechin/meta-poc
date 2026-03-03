@@ -21,13 +21,13 @@ REDIRECT_URI = os.getenv("META_ADS_REDIRECT_URI")
 BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
 
 
-def _campaign_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
-    """Redirect to app campaign result page (single path for success/failure)."""
+def _integration_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
+    """Redirect to app platform integration result page (single path for success/failure)."""
     base = (BASE_APP_UI_URL or "").rstrip("/")
     q = f"outcome={quote(outcome)}"
     if message:
         q += f"&message={quote(message)}"
-    return RedirectResponse(url=f"{base}/campaign-result?{q}", status_code=302)
+    return RedirectResponse(url=f"{base}/integration-result?{q}", status_code=302)
 
 
 def get_httpx_client(request: Request):
@@ -58,14 +58,15 @@ def _format_status_row(integration):
 
 
 @router.get("/status/{workspace_id}", response_model=list[dict])
-def get_campaign_ads_status(workspace_id: int, db: Session = Depends(get_db)):
-    """GET /v1/campaign-ads/status/{workspace_id} - list integrations for workspace."""
+def get_platform_integration_status(workspace_id: int, db: Session = Depends(get_db)):
+    """GET /v1/platform-integration/status/{workspace_id} - list integrations for workspace."""
     rows = crud.get_integrations_by_workspace(db, workspace_id=workspace_id)
     return [_format_status_row(r) for r in rows]
 
+
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
 def meta_auth(body: schemas.MetaAuthRequest):
-    """POST /v1/campaign-ads/meta/auth - return Meta OAuth URL."""
+    """POST /v1/platform-integration/meta/auth - return Meta OAuth URL."""
     state = quote(f'{{"workspace_id":{body.workspace_id}}}')
     scope = "public_profile,email,ads_management,ads_read,pages_show_list,business_management,pages_read_engagement,catalog_management,instagram_manage_insights,instagram_basic"
     auth_url = (
@@ -80,7 +81,7 @@ def meta_auth(body: schemas.MetaAuthRequest):
 
 @router.post("/revoke-access", response_model=schemas.RevokeAccessResponse)
 def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_db)):
-    """POST /v1/campaign-ads/revoke-access - revoke integration by integration_id."""
+    """POST /v1/platform-integration/revoke-access - revoke integration by integration_id."""
     row = crud.revoke_integration(db, integration_id=body.integration_id)
     if not row:
         raise HTTPException(status_code=400, detail="Error revoking access")
@@ -107,22 +108,22 @@ async def meta_auth_callback(
     db: Session = Depends(get_db),
     client: httpx.AsyncClient = Depends(get_httpx_client),
 ):
-    """GET /v1/campaign-ads/meta/auth/callback - OAuth callback from Meta. Redirects to app."""
+    """GET /v1/platform-integration/meta/auth/callback - OAuth callback from Meta. Redirects to app."""
     if not code or not state:
-        return _campaign_result_redirect("failure", "Invalid callback parameters.")
+        return _integration_result_redirect("failure", "Invalid callback parameters.")
     try:
         state_data = json.loads(state)
     except json.JSONDecodeError:
-        return _campaign_result_redirect("failure", "Invalid state.")
+        return _integration_result_redirect("failure", "Invalid state.")
     workspace_id = state_data.get("workspace_id")
     if workspace_id is None:
-        return _campaign_result_redirect("failure", "Missing workspace_id.")
+        return _integration_result_redirect("failure", "Missing workspace_id.")
     workspace_id = int(workspace_id)
     user_id = state_data.get("user_id")
     if user_id is None:
         ws = crud.get_workspace(db, workspace_id)
         if not ws:
-            return _campaign_result_redirect("failure", "Workspace not found.")
+            return _integration_result_redirect("failure", "Workspace not found.")
         user_id = ws.user_id
     else:
         user_id = int(user_id)
@@ -226,7 +227,7 @@ async def meta_auth_callback(
 
         msg = ""
         if not user_detail["instagramAccounts"]["data"] and not user_detail["accounts"]["data"]:
-            return _campaign_result_redirect("failure", "No page Ids and no instagram accounts found.")
+            return _integration_result_redirect("failure", "No page Ids and no instagram accounts found.")
         if not user_detail["instagramAccounts"]["data"]:
             msg = "No instagram accounts are found for any ad account."
             if page_ok:
@@ -239,9 +240,7 @@ async def meta_auth_callback(
             msg = "For some ad accounts pageId or instagram accounts are not found"
 
         ads_list = [{"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")} for a in adaccounts_data if a.get("account_id")]
-        print('tokens...',tokens['access_token'])
-        print('refresh_tokens...', refresh_tokens)
-        crud.create_or_update_meta_integration(db=db, user_id=user_id, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens['access_token'], ads_account=ads_list, refresh_tokens=refresh_tokens)
-        return _campaign_result_redirect("success", msg)
+        crud.create_or_update_meta_integration(db=db, user_id=user_id, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
+        return _integration_result_redirect("success", msg)
     except Exception as ex:
-        return _campaign_result_redirect("failure", str(ex) or "Unexpected error integrating META.")
+        return _integration_result_redirect("failure", str(ex) or "Unexpected error integrating META.")

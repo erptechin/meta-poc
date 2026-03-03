@@ -1,0 +1,59 @@
+/* App layout – header + main */
+.app-layout {
+  --layout-bg: #f8fafc;
+  --layout-header-bg: #fff;
+  --layout-border: #e2e8f0;
+  --layout-text: #1e293b;
+  --layout-text-muted: #64748b;
+  --layout-accent: #3b82f6;
+  --layout-accent-hover: #2563eb;
+  --layout-font: "DM Sans", system-ui, -apple-system, sans-serif;
+
+  min-height: 100vh;
+  font-family: var(--layout-font);
+  color: var(--layout-text);
+  background: var(--layout-bg);
+}
+
+.app-layout__header {
+  background: var(--layout-header-bg);
+  border-bottom: 1px solid var(--layout-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-layout__nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.app-layout__link {
+  display: block;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--layout-text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.app-layout__link:hover {
+  color: var(--layout-text);
+}
+
+.app-layout__link--active {
+  color: var(--layout-accent);
+  border-bottom-color: var(--layout-accent);
+}
+
+.app-layout__main {
+  flex: 1;
+}

@@ -21,10 +21,17 @@
 }
 
 .platform-integration__title {
-  margin: 0 0 1.5rem;
+  margin: 0 0 0.5rem;
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+.platform-integration__desc {
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+  color: var(--pi-text-muted);
+  line-height: 1.5;
 }
 
 /* List view */

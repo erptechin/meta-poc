@@ -1,0 +1,111 @@
+/* Platform Data page – same tokens as PlatformIntegration */
+.platform-data {
+  --pd-bg: #f8fafc;
+  --pd-card-bg: #fff;
+  --pd-border: #e2e8f0;
+  --pd-text: #1e293b;
+  --pd-text-muted: #64748b;
+  --pd-accent: #3b82f6;
+  --pd-accent-hover: #2563eb;
+  --pd-font: "DM Sans", system-ui, -apple-system, sans-serif;
+
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  font-family: var(--pd-font);
+  color: var(--pd-text);
+  background: var(--pd-bg);
+}
+
+.platform-data__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.platform-data__intro {
+  margin: 0 0 0;
+  font-size: 0.95rem;
+  color: var(--pd-text-muted);
+  line-height: 1.5;
+}
+
+.platform-data__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.platform-data__refresh-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--pd-accent, #3b82f6);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--pd-font);
+  flex-shrink: 0;
+}
+
+.platform-data__refresh-btn:hover:not(:disabled) {
+  background: var(--pd-accent-hover, #2563eb);
+}
+
+.platform-data__refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.platform-data__content {
+  margin-top: 0;
+}
+
+.platform-data__json {
+  margin: 0;
+  padding: 1rem;
+  background: var(--pd-card-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.platform-data__loading,
+.platform-data__error {
+  padding: 2rem;
+  text-align: center;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__error {
+  color: #ef4444;
+}
+
+.platform-data__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  background: var(--pd-card-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--pd-text-muted);
+  font-size: 0.95rem;
+}
+
+.platform-data__placeholder-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}

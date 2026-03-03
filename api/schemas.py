@@ -18,7 +18,7 @@ class UserRead(UserBase):
         from_attributes = True
 
 
-# ----- Integration (campaign-ads) -----
+# ----- Integration (platform-integration) -----
 class IntegrationStatusResponse(BaseModel):
     id: int
     user_id: int
@@ -52,3 +52,19 @@ class RevokeAccessRequest(BaseModel):
 class RevokeAccessResponse(BaseModel):
     status: str = "success"
     message: str = "Access revoked"
+
+
+# ----- Platform Data -----
+class SetDataRequest(BaseModel):
+    workspace_id: int
+    data: dict[str, Any] | list | str | int | float | bool | None = None
+
+
+class SetDataResponse(BaseModel):
+    success: bool = True
+    workspace_id: int
+
+
+class GetDataResponse(BaseModel):
+    data: dict[str, Any] | list[Any] | None
+    workspace_id: int

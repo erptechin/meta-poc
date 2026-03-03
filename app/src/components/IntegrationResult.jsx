@@ -1,13 +1,13 @@
 import React, { useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import "./CampaignResult.css";
+import "./IntegrationResult.css";
 
 /**
- * Single campaign result page: shows success or failure from path or query.
- * Path: /campaign-result?outcome=success|failure&message=...
- * Legacy paths /campaign-success and /campaign-failure still supported.
+ * Platform integration result page: shows success or failure from path or query.
+ * Path: /integration-result?outcome=success|failure&message=...
+ * Legacy paths /platform-integration-success and /platform-integration-failure supported.
  */
-export default function CampaignResult() {
+export default function IntegrationResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -15,9 +15,7 @@ export default function CampaignResult() {
   const outcomeParam = searchParams.get("outcome");
   const isSuccess =
     outcomeParam === "success" ||
-    (!outcomeParam && pathname === "/campaign-success");
-
-
+    (!outcomeParam && pathname === "/platform-integration-success");
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -32,34 +30,34 @@ export default function CampaignResult() {
   }, []);
 
   return (
-    <div className="campaign-result">
-      <div className="campaign-result__card">
+    <div className="integration-result">
+      <div className="integration-result__card">
         <div
-          className={`campaign-result__icon campaign-result__icon--${isSuccess ? "success" : "failure"}`}
+          className={`integration-result__icon integration-result__icon--${isSuccess ? "success" : "failure"}`}
           aria-hidden
         >
           {isSuccess ? "✓" : "✕"}
         </div>
-        <h1 className="campaign-result__title">
-          {isSuccess ? "Campaign connected" : "Campaign connection failed"}
+        <h1 className="integration-result__title">
+          {isSuccess ? "Platform connected" : "Platform connection failed"}
         </h1>
-        <p className="campaign-result__subtitle">
+        <p className="integration-result__subtitle">
           {isSuccess
             ? "Meta Ads has been linked to your workspace."
             : "Something went wrong while connecting Meta Ads."}
         </p>
         {message && (
           <div
-            className={`campaign-result__message campaign-result__message--${isSuccess ? "success" : "failure"}`}
+            className={`integration-result__message integration-result__message--${isSuccess ? "success" : "failure"}`}
           >
             {decodeURIComponent(message)}
           </div>
         )}
-        <div className="campaign-result__actions">
+        <div className="integration-result__actions">
           <button
             type="button"
-            className="campaign-result__btn campaign-result__btn--primary"
-            onClick={() => navigate("/")}
+            className="integration-result__btn integration-result__btn--primary"
+            onClick={() => navigate("/platform-integration")}
           >
             Back to Platform Integration
           </button>

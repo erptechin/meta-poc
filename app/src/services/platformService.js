@@ -5,6 +5,8 @@ import {
   ADS,
   META_AD,
   REVOKE_ACCESS,
+  GET_DATA,
+  SET_DATA,
 } from "./apis";
 
 export const AdService = async (workspaceId) => {
@@ -19,5 +21,15 @@ export const MetaService = async (data) => {
 
 export const DeleteIntegrationService = async (data) => {
   const res = await apiAxiosWithToken.post(REVOKE_ACCESS, data);
+  return res.data;
+};
+
+export const GetDataService = async (workspaceId) => {
+  const res = await apiAxiosWithToken.post(GET_DATA, { workspace_id: workspaceId });
+  return res.data;
+};
+
+export const SetDataService = async (data) => {
+  const res = await apiAxiosWithToken.post(SET_DATA, data);
   return res.data;
 };

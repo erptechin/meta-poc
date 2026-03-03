@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import engine
-from routers import campaign_ads
+from routers import platform_integration, platform_data
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -30,4 +30,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(campaign_ads.router, prefix="/v1")
+app.include_router(platform_integration.router, prefix="/v1")
+app.include_router(platform_data.router, prefix="/v1")
