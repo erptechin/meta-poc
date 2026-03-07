@@ -1,10 +1,9 @@
 import asyncio
-import json
 import os
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -19,6 +18,8 @@ APP_ID = os.getenv("META_ADS_CLIENT_ID")
 APP_SECRET = os.getenv("META_ADS_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("META_ADS_REDIRECT_URI")
 BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
+WORKSPACE_ID = int(os.getenv("WORKSPACE_ID", "1"))
+USER_ID = int(os.getenv("USER_ID", "1"))
 
 
 def _integration_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
@@ -35,17 +36,10 @@ def get_httpx_client(request: Request):
 
 
 def _format_status_row(integration):
-    """Format Integration + User for GET /status response (nyx-api shape)."""
-    u = integration.user
-    user_payload = {
-        "name": u.name,
-        "email": u.email,
-        "phone": u.phone,
-    }
+    """Format Integration for GET /status response."""
     return {
         "id": integration.id,
-        "user_id": integration.user_id,
-        "workspace_id": integration.workspace_id,
+        "workspace_id": WORKSPACE_ID,
         "status": integration.status,
         "ad_platform": integration.ad_platform,
         "email": integration.email,
@@ -53,21 +47,20 @@ def _format_status_row(integration):
         "ads_account": integration.ads_account or [],
         "last_authenticated": integration.last_authenticated.isoformat() if integration.last_authenticated else None,
         "updated_at": integration.updated_at.isoformat() if integration.updated_at else None,
-        "user": user_payload,
     }
 
 
 @router.get("/status/{workspace_id}", response_model=list[dict])
 def get_platform_integration_status(workspace_id: int, db: Session = Depends(get_db)):
-    """GET /v1/platform-integration/status/{workspace_id} - list integrations for workspace."""
+    """GET /status/{workspace_id} - list integrations for workspace."""
     rows = crud.get_integrations_by_workspace(db, workspace_id=workspace_id)
     return [_format_status_row(r) for r in rows]
 
 
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
-def meta_auth(body: schemas.MetaAuthRequest):
-    """POST /v1/platform-integration/meta/auth - return Meta OAuth URL."""
-    state = quote(f'{{"workspace_id":{body.workspace_id}}}')
+def meta_auth(body: schemas.MetaAuthRequest | None = Body(None)):
+    """POST /meta/auth - return Meta OAuth URL (workspace/user not required)."""
+    state = quote("{}")
     scope = "public_profile,email,ads_management,ads_read,pages_show_list,business_management,pages_read_engagement,catalog_management,instagram_manage_insights,instagram_basic"
     auth_url = (
         f"https://www.facebook.com/{META_API_VERSION}/dialog/oauth"
@@ -112,23 +105,8 @@ async def meta_auth_callback(
     if not code or not state:
         return _integration_result_redirect("failure", "Invalid callback parameters.")
     try:
-        state_data = json.loads(state)
-    except json.JSONDecodeError:
-        return _integration_result_redirect("failure", "Invalid state.")
-    workspace_id = state_data.get("workspace_id")
-    if workspace_id is None:
-        return _integration_result_redirect("failure", "Missing workspace_id.")
-    workspace_id = int(workspace_id)
-    user_id = state_data.get("user_id")
-    if user_id is None:
-        ws = crud.get_workspace(db, workspace_id)
-        if not ws:
-            return _integration_result_redirect("failure", "Workspace not found.")
-        user_id = ws.user_id
-    else:
-        user_id = int(user_id)
-
-    try:
+        workspace_id = WORKSPACE_ID
+        user_id = USER_ID
         tr = await client.get(
             f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
             params={"client_id": APP_ID, "redirect_uri": REDIRECT_URI, "client_secret": APP_SECRET, "code": code},

@@ -37,7 +37,7 @@ class IntegrationStatusResponse(BaseModel):
 
 
 class MetaAuthRequest(BaseModel):
-    workspace_id: int
+    workspace_id: int | None = None
 
 
 class MetaAuthResponse(BaseModel):
