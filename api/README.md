@@ -76,7 +76,7 @@ Rivery-style pipeline: **extract** (Meta Graph API) → **transform** (normalize
 ## Optional: ngrok
 
 ```sh
-ngrok http --url=your-subdomain.ngrok-free.dev 5005
+ngrok http --url=clumplike-oswaldo-dowily.ngrok-free.dev 5005
 ```
 
 Set `META_ADS_REDIRECT_URI` and Meta app callback URL to your ngrok URL (e.g. `https://your-subdomain.ngrok-free.dev/v1/platform-integration/meta/auth/callback`).
