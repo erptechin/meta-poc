@@ -8,7 +8,7 @@ import schemas
 from database import get_db
 from meta_extractor import run_pipeline
 
-router = APIRouter(prefix="/platform-data", tags=["platform-data"])
+router = APIRouter(tags=["platform-data"])
 
 
 def _etl_result_to_campaigns(result: dict) -> list:

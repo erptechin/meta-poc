@@ -10,8 +10,8 @@ import {
   RUN_META_ETL,
 } from "./apis";
 
-export const AdService = async (workspaceId) => {
-  const res = await apiAxiosWithToken.get(`${ADS}${workspaceId}`);
+export const AdService = async () => {
+  const res = await apiAxiosWithToken.get(ADS);
   return res.data;
 };
 

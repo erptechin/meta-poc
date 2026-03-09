@@ -11,15 +11,13 @@ import crud
 import schemas
 from database import get_db
 
-router = APIRouter(prefix="/campaign-ads", tags=["campaign-ads"])
+router = APIRouter(tags=["campaign-ads"])
 
 META_API_VERSION = os.getenv("META_API_VERSION", "v23.0")
 APP_ID = os.getenv("META_ADS_CLIENT_ID")
 APP_SECRET = os.getenv("META_ADS_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("META_ADS_REDIRECT_URI")
 BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
-WORKSPACE_ID = int(os.getenv("WORKSPACE_ID", "1"))
-USER_ID = int(os.getenv("USER_ID", "1"))
 
 
 def _integration_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
@@ -39,7 +37,7 @@ def _format_status_row(integration):
     """Format Integration for GET /status response."""
     return {
         "id": integration.id,
-        "workspace_id": WORKSPACE_ID,
+        "workspace_id": 1,
         "status": integration.status,
         "ad_platform": integration.ad_platform,
         "email": integration.email,
@@ -50,11 +48,12 @@ def _format_status_row(integration):
     }
 
 
-@router.get("/status/{workspace_id}", response_model=list[dict])
-def get_platform_integration_status(workspace_id: int, db: Session = Depends(get_db)):
-    """GET /status/{workspace_id} - list integrations for workspace."""
-    rows = crud.get_integrations_by_workspace(db, workspace_id=workspace_id)
+@router.get("/status", response_model=list[dict])
+def get_platform_integration_status_default(db: Session = Depends(get_db)):
+    """GET /status - list integrations for workspace 1."""
+    rows = crud.get_integrations_by_workspace(db)
     return [_format_status_row(r) for r in rows]
+
 
 
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
@@ -105,8 +104,7 @@ async def meta_auth_callback(
     if not code or not state:
         return _integration_result_redirect("failure", "Invalid callback parameters.")
     try:
-        workspace_id = WORKSPACE_ID
-        user_id = USER_ID
+        workspace_id = 1
         tr = await client.get(
             f"https://graph.facebook.com/{META_API_VERSION}/oauth/access_token",
             params={"client_id": APP_ID, "redirect_uri": REDIRECT_URI, "client_secret": APP_SECRET, "code": code},
@@ -218,7 +216,7 @@ async def meta_auth_callback(
             msg = "For some ad accounts pageId or instagram accounts are not found"
 
         ads_list = [{"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")} for a in adaccounts_data if a.get("account_id")]
-        crud.create_or_update_meta_integration(db=db, user_id=user_id, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
+        crud.create_or_update_meta_integration(db=db, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
         return _integration_result_redirect("success", msg)
     except Exception as ex:
         return _integration_result_redirect("failure", str(ex) or "Unexpected error integrating META.")

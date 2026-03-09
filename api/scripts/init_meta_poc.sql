@@ -7,18 +7,22 @@ USE meta_poc;
 
 -- Create tables:
 
--- integration (columns match meta-poc init_postgres.sql 5-15)
+-- integration (matches api/models.py Integration)
 CREATE TABLE IF NOT EXISTS integration (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  user_email VARCHAR(255) NULL,
-  access_token VARCHAR(2048) NULL,
-  refresh_token VARCHAR(2048) NULL,
-  token_expiry DATETIME(6) NULL,
-  google_ads_customer_id VARCHAR(64) NULL,
-  account_name VARCHAR(255) NULL,
-  access_removed INT NOT NULL DEFAULT 0,
-  created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
-  updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+  workspace_id INT NOT NULL DEFAULT 1,
+  ad_platform VARCHAR(64) NOT NULL,
+  status TINYINT(1) NOT NULL DEFAULT 1,
+  email VARCHAR(255) NULL,
+  ad_login_userinfo JSON NULL,
+  ads_account JSON NULL,
+  tokens JSON NULL,
+  refresh_tokens JSON NULL,
+  access_removed TINYINT(1) NOT NULL DEFAULT 0,
+  last_authenticated DATETIME(6) NULL,
+  updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  INDEX ix_integration_workspace_id (workspace_id),
+  INDEX ix_integration_ad_platform (ad_platform)
 );
 
 -- platform_data (columns match meta-poc init_postgres.sql campaign_data 20-34)

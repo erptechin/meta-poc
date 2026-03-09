@@ -30,5 +30,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(platform_integration.router, prefix="/v1")
-app.include_router(platform_data.router, prefix="/v1")
+app.include_router(platform_integration.router, prefix="/v1/campaign-ads")
+app.include_router(platform_data.router, prefix="/v1/platform-data")

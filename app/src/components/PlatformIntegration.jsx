@@ -10,9 +10,6 @@ const PLATFORM_CONFIG = {
     LINKEDIN: { name: "LINKEDIN", label: "LinkedIn", icon: "🅛" },
 };
 
-const WORKSPACE_ID = 1;
-
-
 const IntegratedView = React.memo(function IntegratedView({ item }) {
     const raw = item.ad_login_userinfo;
     const userInfo = raw?.userInfo ?? (raw && (raw.name || raw.email) ? raw : null);
@@ -66,8 +63,8 @@ export default function PlatformIntegration() {
         isError,
         error,
     } = useQuery({
-        queryKey: ["all-ads", WORKSPACE_ID],
-        queryFn: () => AdService(WORKSPACE_ID),
+        queryKey: ["all-ads"],
+        queryFn: () => AdService(),
     });
 
     const platforms = useMemo(() => {
@@ -103,7 +100,7 @@ export default function PlatformIntegration() {
 
     const handleAddAccount = useCallback((platformName) => {
         if (platformName === "META") {
-            mutateMeta.mutate({ workspace_id: WORKSPACE_ID });
+            mutateMeta.mutate({});
         } else {
             toast.error(`Integration not supported for ${platformName}`);
         }
@@ -117,7 +114,7 @@ export default function PlatformIntegration() {
     const confirmDelete = useCallback(() => {
         if (deleteConfirmId == null) return;
         mutateDelete.mutate(
-            { workspace_id: WORKSPACE_ID, integration_id: deleteConfirmId },
+            { integration_id: deleteConfirmId },
             { onSettled: () => setDeleteConfirmId(null) }
         );
     }, [deleteConfirmId, mutateDelete]);

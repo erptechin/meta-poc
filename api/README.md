@@ -13,8 +13,10 @@ pip install -r requirements.txt
 
 **Environment (optional):**
 
-- `DATABASE_URL` – MySQL connection string, e.g.  
-  `mysql+mysqlconnector://user:pass@localhost:3306/meta_poc`
+- `DATABASE_URL` – **MySQL** connection string, e.g.  
+  `mysql+mysqlconnector://user:pass@localhost:3306/meta_poc`  
+  (If set to an MSSQL/SQL Server URL, it is ignored and the default MySQL URL or `MYSQL_DATABASE_URL` is used.)
+- `MYSQL_DATABASE_URL` – MySQL URL used when `DATABASE_URL` is not MySQL (optional).
 - `META_ADS_CLIENT_ID`, `META_ADS_CLIENT_SECRET`, `META_ADS_REDIRECT_URI`, `BASE_APP_UI_URL` – for Meta OAuth and redirects
 - `META_API_VERSION` – Meta Graph API version (default `v23.0`)
 
@@ -30,7 +32,7 @@ pip install -r requirements.txt
      ```sh
      mysql -u root -p < api/scripts/init_meta_poc.sql
      ```
-   - You will be prompted for the MySQL root password. This creates the `meta_poc` database and tables (`user`, `workspace`, `integration`, `platform_data`).
+   - You will be prompted for the MySQL root password. This creates the `meta_poc` database and tables (`integration`, `platform_data`).
    - **Alternative:** If MySQL is already running and you have a different user:
      ```sh
      mysql -u YOUR_USER -p -h localhost < api/scripts/init_meta_poc.sql
@@ -51,10 +53,10 @@ pip install -r requirements.txt
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/v1/platform-integration/status/{workspace_id}` | List integrations for workspace |
-| POST | `/v1/platform-integration/meta/auth` | Get Meta OAuth URL. Body: `{"workspace_id": N}` |
-| GET | `/v1/platform-integration/meta/auth/callback` | OAuth callback (Meta redirects here) |
-| POST | `/v1/platform-integration/revoke-access` | Revoke integration. Body: `{"workspace_id": N, "integration_id": N}` |
+| GET | `/v1/campaign-ads/status` | List integrations (workspace 1) |
+| POST | `/v1/campaign-ads/meta/auth` | Get Meta OAuth URL |
+| GET | `/v1/campaign-ads/meta/auth/callback` | OAuth callback (Meta redirects here) |
+| POST | `/v1/campaign-ads/revoke-access` | Revoke integration. Body: `{"integration_id": N}` |
 
 ### Platform Data
 
@@ -66,7 +68,7 @@ pip install -r requirements.txt
 
 ## Database
 
-- **Tables:** `user`, `workspace`, `integration`, `platform_data`
+- **Tables:** `integration`, `platform_data`
 - **platform_data:** One row per workspace; column `campaigns` (JSON). Meta ETL persists only campaigns (see `meta_extractor/config.py`).
 
 ## Meta ETL (`meta_extractor`)
@@ -79,4 +81,4 @@ Rivery-style pipeline: **extract** (Meta Graph API) → **transform** (normalize
 ngrok http --url=clumplike-oswaldo-dowily.ngrok-free.dev 5005
 ```
 
-Set `META_ADS_REDIRECT_URI` and Meta app callback URL to your ngrok URL (e.g. `https://your-subdomain.ngrok-free.dev/v1/platform-integration/meta/auth/callback`).
+Set `META_ADS_REDIRECT_URI` and Meta app callback URL to your ngrok URL (e.g. `https://your-subdomain.ngrok-free.dev/v1/campaign-ads/meta/auth/callback`).
