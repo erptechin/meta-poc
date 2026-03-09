@@ -22,20 +22,20 @@ pip install -r requirements.txt
 
 ## Run
 
-1. **Initialize database (run `init_meta_poc.sql`):**
+1. **Initialize database (run `init_poc.sql`):**
    - From the **api** directory:
      ```sh
      cd api
-     mysql -u root -p < scripts/init_meta_poc.sql
+     mysql -u root -p < scripts/init_poc.sql
      ```
    - Or from the **project root** (`meta-poc`):
      ```sh
-     mysql -u root -p < api/scripts/init_meta_poc.sql
+     mysql -u root -p < api/scripts/init_poc.sql
      ```
    - You will be prompted for the MySQL root password. This creates the `meta_poc` database and tables (`integration`, `platform_data`).
    - **Alternative:** If MySQL is already running and you have a different user:
      ```sh
-     mysql -u YOUR_USER -p -h localhost < api/scripts/init_meta_poc.sql
+     mysql -u YOUR_USER -p -h localhost < api/scripts/init_poc.sql
      ```
 
 2. **API:**
