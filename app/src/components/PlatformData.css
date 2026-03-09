@@ -39,6 +39,36 @@
   margin-bottom: 1.5rem;
 }
 
+.platform-data__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.platform-data__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.platform-data__filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--pd-text-muted);
+}
+
+.platform-data__filters input[type="date"] {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--pd-border);
+  border-radius: 6px;
+  font-family: var(--pd-font);
+}
+
 .platform-data__refresh-btn {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;

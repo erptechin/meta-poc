@@ -31,8 +31,12 @@ export const DeleteIntegrationService = async (data) => {
   return res.data;
 };
 
-export const GetDataService = async (workspaceId) => {
-  const res = await apiAxiosWithToken.post(GET_DATA, { workspace_id: workspaceId });
+export const GetDataService = async (workspaceId, { reportDate, reportDateFrom, reportDateTo } = {}) => {
+  const body = { workspace_id: workspaceId };
+  if (reportDate != null) body.report_date = reportDate;
+  if (reportDateFrom != null) body.report_date_from = reportDateFrom;
+  if (reportDateTo != null) body.report_date_to = reportDateTo;
+  const res = await apiAxiosWithToken.post(GET_DATA, body);
   return res.data;
 };
 
@@ -41,7 +45,9 @@ export const SetDataService = async (data) => {
   return res.data;
 };
 
-export const RunMetaEtlService = async (workspaceId) => {
-  const res = await apiAxiosWithToken.post(RUN_META_ETL, { workspace_id: workspaceId });
+export const RunMetaEtlService = async (workspaceId, reportDate = null) => {
+  const body = { workspace_id: workspaceId };
+  if (reportDate != null) body.report_date = reportDate;
+  const res = await apiAxiosWithToken.post(RUN_META_ETL, body);
   return res.data;
 };

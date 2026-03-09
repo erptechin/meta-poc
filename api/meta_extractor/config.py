@@ -10,6 +10,9 @@ GRAPH_BASE_URL = f"https://graph.facebook.com/{META_API_VERSION}"
 # Default fields for extraction
 CAMPAIGN_FIELDS = "id,name,status,objective,daily_budget,lifetime_budget,created_time,updated_time"
 
+# Insights (reporting) fields for campaign insights by date
+INSIGHTS_FIELDS = "impressions,clicks,spend,cpm,cpc,ctr"
+
 # Timeouts and limits
 REQUEST_TIMEOUT = 30.0
 MAX_PAGES_PER_REQUEST = 25

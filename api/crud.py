@@ -131,27 +131,62 @@ def create_or_update_google_integration(
 
 
 # ----- Platform Data -----
-def get_platform_data(db: Session, workspace_id: int):
-    return db.query(models.PlatformData).filter(models.PlatformData.workspace_id == workspace_id).first()
-
-
-def create_or_update_platform_data(
+def get_platform_data(
     db: Session,
     workspace_id: int,
-    campaigns: list | None = None,
+    report_date: str | None = None,
+    report_date_from: str | None = None,
+    report_date_to: str | None = None,
 ):
-    row = get_platform_data(db, workspace_id)
-    if row:
-        if campaigns is not None:
-            row.campaigns = campaigns
-        db.commit()
-        db.refresh(row)
-        return row
-    new_row = models.PlatformData(
-        workspace_id=workspace_id,
-        campaigns=campaigns or [],
-    )
-    db.add(new_row)
+    """
+    Get platform_data rows for workspace (via Meta integration), optionally filtered by report_date.
+    Returns list of PlatformData ordered by report_date.
+    """
+    meta = get_meta_integration_by_workspace(db, workspace_id)
+    if not meta:
+        return []
+    q = db.query(models.PlatformData).filter(models.PlatformData.integration_id == meta.id)
+    if report_date:
+        q = q.filter(models.PlatformData.report_date == report_date)
+    if report_date_from:
+        q = q.filter(models.PlatformData.report_date >= report_date_from)
+    if report_date_to:
+        q = q.filter(models.PlatformData.report_date <= report_date_to)
+    return q.order_by(models.PlatformData.report_date).all()
+
+
+def save_platform_data(
+    db: Session,
+    integration_id: int,
+    report_date: str,
+    rows: list[dict],
+) -> int:
+    """
+    Replace platform_data for (integration_id, report_date) with the given rows.
+    Each row: campaign_name, campaign_type?, source?, impressions?, clicks?, cpm?, cpc?, ctr?, amount_spent?, data?
+    Returns count of rows saved.
+    """
+    from datetime import date
+    db.query(models.PlatformData).filter(
+        models.PlatformData.integration_id == integration_id,
+        models.PlatformData.report_date == report_date,
+    ).delete()
+    report_d = date.fromisoformat(report_date) if isinstance(report_date, str) else report_date
+    for r in rows or []:
+        row = models.PlatformData(
+            integration_id=integration_id,
+            report_date=report_d,
+            campaign_name=r.get("campaign_name"),
+            campaign_type=r.get("campaign_type"),
+            source=r.get("source"),
+            impressions=r.get("impressions"),
+            clicks=r.get("clicks"),
+            cpm=r.get("cpm"),
+            cpc=r.get("cpc"),
+            ctr=r.get("ctr"),
+            amount_spent=r.get("amount_spent"),
+            data=r.get("data"),
+        )
+        db.add(row)
     db.commit()
-    db.refresh(new_row)
-    return new_row
+    return len(rows or [])

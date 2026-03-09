@@ -2,13 +2,14 @@
 meta_extractor – Rivery-style ETL.
 Main: orchestrate Extract -> Transform -> Load.
 """
+from datetime import date, timedelta
 from typing import Any
 
 import httpx
 
 from . import config
-from .extractor import extract_all
-from .transformer import transform
+from .extractor import extract_all, extract_insights_for_date
+from .transformer import transform, transform_insight_rows
 from .loader import load_to_dict, load_to_store
 
 
@@ -43,3 +44,23 @@ def run_pipeline(
         load_to_store(transformed, store, workspace_id, key=load_key)
 
     return load_to_dict(transformed)
+
+
+def run_insights_pipeline(
+    access_token: str,
+    ad_account_ids: list[str] | None = None,
+    report_date: str | None = None,
+) -> list[dict]:
+    """
+    Run insights ETL for a single report_date: extract campaign insights for that date,
+    transform to platform_data row format. Returns list of rows ready for save_platform_data.
+    report_date: YYYY-MM-DD. Defaults to yesterday.
+    """
+    if not report_date:
+        report_date = (date.today() - timedelta(days=1)).isoformat()
+    raw_rows = extract_insights_for_date(
+        access_token,
+        ad_account_ids=ad_account_ids,
+        report_date=report_date,
+    )
+    return transform_insight_rows(raw_rows, report_date)

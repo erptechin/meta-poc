@@ -41,6 +41,10 @@ class RevokeAccessResponse(BaseModel):
 class SetDataRequest(BaseModel):
     workspace_id: int
     data: dict[str, Any] | list | str | int | float | bool | None = None
+    # Date filter for get (fetch by report_date)
+    report_date: str | None = None
+    report_date_from: str | None = None
+    report_date_to: str | None = None
 
 
 class SetDataResponse(BaseModel):
@@ -51,3 +55,22 @@ class SetDataResponse(BaseModel):
 class GetDataResponse(BaseModel):
     data: dict[str, Any] | list[Any] | None
     workspace_id: int
+
+
+class PlatformDataRow(BaseModel):
+    """One row of platform_data (for API response)."""
+    id: int | None = None
+    report_date: str | None = None
+    campaign_name: str | None = None
+    campaign_type: str | None = None
+    source: str | None = None
+    impressions: int | None = None
+    clicks: int | None = None
+    cpm: float | None = None
+    cpc: float | None = None
+    ctr: float | None = None
+    amount_spent: float | None = None
+    data: dict[str, Any] | None = None
+
+    class Config:
+        from_attributes = True

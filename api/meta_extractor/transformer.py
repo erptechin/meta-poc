@@ -96,3 +96,51 @@ def transform(extracted: dict) -> dict:
         "adsets": transform_adsets(extracted.get("adsets")),
         "ads": transform_ads(extracted.get("ads")),
     }
+
+
+def _num(value: Any) -> int | None:
+    """Parse int from string or number."""
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _decimal(value: Any) -> float | None:
+    """Parse float for decimal fields."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+
+
+def transform_insight_rows(raw_rows: list[dict], report_date: str) -> list[dict]:
+    """
+    Transform raw insight records (from extract_insights_for_date) to platform_data row format.
+    Each output row: report_date, campaign_name, campaign_type, source, impressions, clicks, cpm, cpc, ctr, amount_spent, data.
+    """
+    out = []
+    for r in raw_rows or []:
+        date_start = r.get("date_start") or report_date
+        out.append({
+            "report_date": date_start,
+            "campaign_name": r.get("campaign_name"),
+            "campaign_type": None,
+            "source": "META",
+            "impressions": _num(r.get("impressions")),
+            "clicks": _num(r.get("clicks")),
+            "cpm": _decimal(r.get("cpm")),
+            "cpc": _decimal(r.get("cpc")),
+            "ctr": _decimal(r.get("ctr")),
+            "amount_spent": _decimal(r.get("spend") or r.get("amount_spent")),
+            "data": {"campaign_id": r.get("campaign_id")},
+        })
+    return out

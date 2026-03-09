@@ -65,17 +65,18 @@ pip install -r requirements.txt
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/platform-data/platform-data` | Get or set `platform_data`. **Set:** Body `{"workspace_id": N, "data": {"campaigns": [...]}}`. **Get:** Body `{"workspace_id": N}` (no `data`). Returns `{ success, workspace_id }` on set, or `{ success, workspace_id, data: { campaigns } }` on get. |
-| POST | `/v1/platform-data/run-meta-etl` | Run Meta ETL (extract → transform → load), save to `platform_data` table, return data. Body: `{"workspace_id": N}` |
+| POST | `/v1/platform-data/platform-data` | **Get** (by date): Body `{"workspace_id": N, optional "report_date", "report_date_from", "report_date_to"}`. Returns `{ success, workspace_id, data: [ rows ] }` ordered by `report_date`. **Set:** Body `{"workspace_id": N, "data": {"rows": [ { report_date, campaign_name, ... } ]}}`. |
+| POST | `/v1/platform-data/run-meta-etl` | Run Meta **insights** ETL for a date; save to `platform_data`. Body: `{"workspace_id": N, optional "report_date": "YYYY-MM-DD"}` (default: yesterday). |
 
 ## Database
 
 - **Tables:** `integration`, `platform_data`
-- **platform_data:** One row per workspace; column `campaigns` (JSON). Meta ETL persists only campaigns (see `meta_extractor/config.py`).
+- **platform_data:** One row per (integration_id, report_date, campaign): `report_date`, `campaign_name`, `campaign_type`, `source`, `impressions`, `clicks`, `cpm`, `cpc`, `ctr`, `amount_spent`, `data` (JSON). Fetch by `report_date` (or range). If you previously had the old schema (workspace_id + campaigns JSON), run `DROP TABLE platform_data;` then re-run `init_poc.sql` or let SQLAlchemy recreate the table.
 
 ## Meta ETL (`meta_extractor`)
 
-Rivery-style pipeline: **extract** (Meta Graph API) → **transform** (normalize) → **load** (DB). Used by `run-meta-etl`; config and field lists in `meta_extractor/config.py`.
+- **run_pipeline:** Full extract (campaigns, adsets, ads) → transform → return payload.
+- **run_insights_pipeline:** For a given `report_date`, fetches campaign insights (impressions, clicks, spend, cpm, cpc, ctr) from Meta Graph API and returns rows for `platform_data` table. Used by `run-meta-etl`.
 
 ## Optional: ngrok
 

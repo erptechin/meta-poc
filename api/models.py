@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Date, Numeric, ForeignKey
 from sqlalchemy.sql import func
 
 from database import Base
@@ -21,11 +21,21 @@ class Integration(Base):
 
 
 class PlatformData(Base):
-    """Stored Meta ETL result per workspace (campaigns only)."""
+    """One row per integration per report_date per campaign (metrics from Meta insights)."""
     __tablename__ = "platform_data"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, nullable=False, index=True, unique=True)
-    campaigns = Column(JSON, nullable=True)
+    integration_id = Column(Integer, ForeignKey("integration.id", ondelete="CASCADE"), nullable=False, index=True)
+    report_date = Column(Date, nullable=True, index=True)
+    campaign_name = Column(String(512), nullable=True)
+    campaign_type = Column(String(128), nullable=True)
+    source = Column(String(128), nullable=True)
+    impressions = Column(Integer, nullable=True)
+    clicks = Column(Integer, nullable=True)
+    cpm = Column(Numeric(14, 4), nullable=True)
+    cpc = Column(Numeric(14, 4), nullable=True)
+    ctr = Column(Numeric(14, 4), nullable=True)
+    amount_spent = Column(Numeric(14, 4), nullable=True)
+    data = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

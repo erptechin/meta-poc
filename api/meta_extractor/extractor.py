@@ -86,6 +86,74 @@ def extract_ads(
             client.close()
 
 
+def extract_campaign_insights(
+    access_token: str,
+    campaign_id: str,
+    date_since: str,
+    date_until: str,
+    client: httpx.Client | None = None,
+) -> list[dict]:
+    """
+    Extract insights for a single campaign for a date range.
+    campaign_id can be numeric or with act_ prefix; insights are at campaign level.
+    time_range: {"since": "YYYY-MM-DD", "until": "YYYY-MM-DD"}
+    """
+    import json
+    cid = campaign_id if str(campaign_id).startswith("act_") else str(campaign_id)
+    url = f"{config.GRAPH_BASE_URL}/{cid}/insights"
+    time_range = json.dumps({"since": date_since, "until": date_until})
+    params = {
+        "access_token": access_token,
+        "fields": config.INSIGHTS_FIELDS,
+        "time_range": time_range,
+        "time_increment": 1,
+    }
+    own = client is None
+    if own:
+        client = httpx.Client(timeout=config.REQUEST_TIMEOUT)
+    try:
+        r = client.get(url, params=params)
+        r.raise_for_status()
+        return (r.json().get("data") or [])
+    finally:
+        if own:
+            client.close()
+
+
+def extract_insights_for_date(
+    access_token: str,
+    ad_account_ids: list[str] | None = None,
+    report_date: str | None = None,
+    client: httpx.Client | None = None,
+) -> list[dict]:
+    """
+    For a single report_date, get all campaigns from ad accounts, then insights for that date per campaign.
+    Returns list of raw insight records (each has date_start, impressions, clicks, spend, cpm, cpc, ctr)
+    with campaign_id and campaign_name attached.
+    """
+    raw = extract_all(access_token, ad_account_ids=ad_account_ids, client=client)
+    campaigns = raw.get("campaigns") or []
+    out = []
+    own = client is None
+    if own:
+        client = httpx.Client(timeout=config.REQUEST_TIMEOUT)
+    try:
+        for c in campaigns:
+            cid = c.get("id")
+            if not cid:
+                continue
+            insights = extract_campaign_insights(
+                access_token, cid, report_date, report_date, client=client
+            )
+            name = c.get("name") or ""
+            for ins in insights:
+                out.append({"campaign_id": cid, "campaign_name": name, **ins})
+    finally:
+        if own:
+            client.close()
+    return out
+
+
 def extract_all(
     access_token: str,
     ad_account_ids: list[str] | None = None,
