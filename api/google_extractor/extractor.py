@@ -33,6 +33,7 @@ def extract_insights_for_date(
         "refresh_token": refresh_token,
         "client_id": client_id,
         "client_secret": client_secret,
+        "use_proto_plus": True,
     }
     try:
         client = GoogleAdsClient.load_from_dict(credentials)
@@ -62,12 +63,11 @@ def extract_insights_for_date(
         cid = str(customer_id).replace("-", "")
         if not cid.isdigit():
             continue
-        # GAQL: campaign metrics for a single day
+        # GAQL: campaign metrics for a single day (campaign.type not available in SearchStream)
         query = f"""
             SELECT
                 campaign.id,
                 campaign.name,
-                campaign.type,
                 segments.date,
                 metrics.impressions,
                 metrics.clicks,
@@ -92,7 +92,7 @@ def extract_insights_for_date(
                     out.append({
                         "campaign_id": str(campaign.id) if campaign.id else None,
                         "campaign_name": campaign.name or "",
-                        "campaign_type": str(campaign.type).replace("CAMPAIGN_TYPE_", "") if campaign.type else None,
+                        "campaign_type": None,
                         "date": segments.date if segments.date else report_date,
                         "impressions": metrics.impressions if metrics.impressions else 0,
                         "clicks": metrics.clicks if metrics.clicks else 0,
