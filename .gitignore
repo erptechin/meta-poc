@@ -4,6 +4,8 @@ package-lock.json
 
 # dependencies
 node_modules/
+__pycache__/
+.vite/
 /.pnp
 .pnp.js
 

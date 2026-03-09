@@ -46,19 +46,3 @@ CREATE TABLE IF NOT EXISTS platform_data (
   INDEX ix_platform_data_campaign_name (campaign_name),
   FOREIGN KEY (integration_id) REFERENCES integration(id) ON DELETE CASCADE
 );
-
--- report_summary (columns match meta-poc init_postgres.sql 42-51)
-CREATE TABLE IF NOT EXISTS report_summary (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  integration_id INT NOT NULL,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
-  total_impressions BIGINT NOT NULL DEFAULT 0,
-  total_clicks BIGINT NOT NULL DEFAULT 0,
-  total_amount_spent DECIMAL(14, 4) NOT NULL DEFAULT 0,
-  created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
-  updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  UNIQUE KEY uq_report_summary_integration_dates (integration_id, start_date, end_date),
-  INDEX ix_report_summary_integration_dates (integration_id, start_date, end_date),
-  FOREIGN KEY (integration_id) REFERENCES integration(id) ON DELETE CASCADE
-);
