@@ -11,50 +11,16 @@ from meta_extractor import run_pipeline
 router = APIRouter(tags=["platform-data"])
 
 
-def _etl_result_to_campaigns(result: dict) -> list:
-    """Extract campaigns from run_pipeline result."""
-    return result.get("campaigns") or []
+def _campaigns_from_raw(raw: dict | None) -> list:
+    """Extract campaigns list from request data or pipeline result."""
+    if not isinstance(raw, dict):
+        return []
+    c = raw.get("campaigns")
+    return c if isinstance(c, list) else []
 
 
-@router.post("/set-platform-data", response_model=schemas.SetDataResponse)
-def set_platform_data(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
-    """
-    POST /v1/platform-data/set-platform-data - insert/update platform_data in DB.
-    Body: {"workspace_id": N, "data": { "campaigns": [...] }}.
-    """
-    workspace_id = body.workspace_id
-    raw = body.data
-    campaigns = []
-    if isinstance(raw, dict) and isinstance(raw.get("campaigns"), list):
-        campaigns = raw["campaigns"]
-    crud.create_or_update_platform_data(db, workspace_id=workspace_id, campaigns=campaigns)
-    return schemas.SetDataResponse(success=True, workspace_id=workspace_id)
-
-
-@router.post("/get-platform-data")
-def get_platform_data(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
-    """
-    POST /v1/platform-data/get-platform-data - get platform_data from DB for workspace.
-    Body: {"workspace_id": N}. Returns { success, workspace_id, data: { campaigns } }.
-    """
-    workspace_id = body.workspace_id
-    row = crud.get_platform_data(db, workspace_id=workspace_id)
-    if not row:
-        return {"success": True, "workspace_id": workspace_id, "data": {"campaigns": []}}
-    return {
-        "success": True,
-        "workspace_id": workspace_id,
-        "data": {"campaigns": row.campaigns or []},
-    }
-
-
-@router.post("/run-meta-etl")
-def run_meta_etl(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
-    """
-    POST /v1/platform-data/run-meta-etl - run Meta ETL, insert into DB, return data.
-    Body: {"workspace_id": N}. Uses Meta integration token; saves to platform_data table.
-    """
-    workspace_id = body.workspace_id
+def _get_meta_access_and_accounts(db: Session, workspace_id: int) -> tuple[str, list[str]]:
+    """Get Meta access token and ad account IDs for workspace. Raises HTTPException if missing."""
     integrations = crud.get_integrations_by_workspace(db, workspace_id=workspace_id)
     meta = next((i for i in integrations if i.ad_platform == "META"), None)
     if not meta:
@@ -75,12 +41,40 @@ def run_meta_etl(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
         for a in ads_accounts
         if a.get("account_id") or a.get("id")
     ]
+    return access_token, ad_account_ids
+
+
+@router.post("/platform-data")
+def platform_data(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
+    """
+    Single endpoint: get or set platform_data.
+    - Body with `data`: { "workspace_id": N, "data": { "campaigns": [...] } } → set and return success.
+    - Body without `data`: { "workspace_id": N } → return stored data { success, workspace_id, data: { campaigns } }.
+    """
+    workspace_id = body.workspace_id
+    if body.data is not None and isinstance(body.data, dict):
+        campaigns = _campaigns_from_raw(body.data)
+        crud.create_or_update_platform_data(db, workspace_id=workspace_id, campaigns=campaigns)
+        return schemas.SetDataResponse(success=True, workspace_id=workspace_id)
+    row = crud.get_platform_data(db, workspace_id=workspace_id)
+    campaigns = (row.campaigns or []) if row else []
+    return {"success": True, "workspace_id": workspace_id, "data": {"campaigns": campaigns}}
+
+
+@router.post("/run-meta-etl")
+def run_meta_etl(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
+    """
+    Run Meta ETL, save to platform_data, return result.
+    Body: { "workspace_id": N }.
+    """
+    workspace_id = body.workspace_id
+    access_token, ad_account_ids = _get_meta_access_and_accounts(db, workspace_id)
     result = run_pipeline(
         access_token=access_token,
-        ad_account_ids=ad_account_ids if ad_account_ids else None,
+        ad_account_ids=ad_account_ids or None,
         store=None,
         workspace_id=None,
     )
-    campaigns = _etl_result_to_campaigns(result)
+    campaigns = _campaigns_from_raw(result)
     crud.create_or_update_platform_data(db, workspace_id=workspace_id, campaigns=campaigns)
     return {"success": True, "workspace_id": workspace_id, "data": result}

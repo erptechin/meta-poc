@@ -65,8 +65,7 @@ pip install -r requirements.txt
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/platform-data/set-platform-data` | Insert/update `platform_data` in DB. Body: `{"workspace_id": N, "data": {"campaigns": [...]}}` |
-| POST | `/v1/platform-data/get-platform-data` | Get `platform_data` from DB. Body: `{"workspace_id": N}`. Returns `{ success, workspace_id, data: { campaigns } }`. |
+| POST | `/v1/platform-data/platform-data` | Get or set `platform_data`. **Set:** Body `{"workspace_id": N, "data": {"campaigns": [...]}}`. **Get:** Body `{"workspace_id": N}` (no `data`). Returns `{ success, workspace_id }` on set, or `{ success, workspace_id, data: { campaigns } }` on get. |
 | POST | `/v1/platform-data/run-meta-etl` | Run Meta ETL (extract → transform → load), save to `platform_data` table, return data. Body: `{"workspace_id": N}` |
 
 ## Database
