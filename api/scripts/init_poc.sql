@@ -24,10 +24,11 @@ CREATE TABLE IF NOT EXISTS integration (
   INDEX ix_integration_ad_platform (ad_platform)
 );
 
--- platform_data (columns match meta-poc init_postgres.sql campaign_data 20-34)
+-- platform_data (one row per integration per report_date per campaign; type = meta | google | linkedin)
 CREATE TABLE IF NOT EXISTS platform_data (
   id INT AUTO_INCREMENT PRIMARY KEY,
   integration_id INT NOT NULL,
+  type VARCHAR(32) NOT NULL DEFAULT 'meta',
   report_date DATE NULL,
   campaign_name VARCHAR(512) NULL,
   campaign_type VARCHAR(128) NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS platform_data (
   created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   INDEX ix_platform_data_integration_id (integration_id),
+  INDEX ix_platform_data_type (type),
   INDEX ix_platform_data_integration_report_date (integration_id, report_date),
   INDEX ix_platform_data_campaign_name (campaign_name),
   FOREIGN KEY (integration_id) REFERENCES integration(id) ON DELETE CASCADE

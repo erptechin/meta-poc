@@ -137,15 +137,24 @@ def get_platform_data(
     report_date: str | None = None,
     report_date_from: str | None = None,
     report_date_to: str | None = None,
+    type: str | None = None,
 ):
     """
-    Get platform_data rows for workspace (via Meta integration), optionally filtered by report_date.
+    Get platform_data rows for workspace (all integrations), optionally filtered by report_date and type.
+    type: 'meta' | 'google' | 'linkedin' | None (all).
     Returns list of PlatformData ordered by report_date.
     """
-    meta = get_meta_integration_by_workspace(db, workspace_id)
-    if not meta:
+    integration_ids = [
+        i.id for i in db.query(models.Integration).filter(
+            models.Integration.workspace_id == workspace_id,
+            models.Integration.access_removed.is_(False),
+        ).all()
+    ]
+    if not integration_ids:
         return []
-    q = db.query(models.PlatformData).filter(models.PlatformData.integration_id == meta.id)
+    q = db.query(models.PlatformData).filter(models.PlatformData.integration_id.in_(integration_ids))
+    if type:
+        q = q.filter(models.PlatformData.type == type)
     if report_date:
         q = q.filter(models.PlatformData.report_date == report_date)
     if report_date_from:
@@ -160,9 +169,11 @@ def save_platform_data(
     integration_id: int,
     report_date: str,
     rows: list[dict],
+    type: str = "meta",
 ) -> int:
     """
-    Replace platform_data for (integration_id, report_date) with the given rows.
+    Replace platform_data for (integration_id, report_date, type) with the given rows.
+    type: 'meta' | 'google' | 'linkedin'.
     Each row: campaign_name, campaign_type?, source?, impressions?, clicks?, cpm?, cpc?, ctr?, amount_spent?, data?
     Returns count of rows saved.
     """
@@ -170,11 +181,13 @@ def save_platform_data(
     db.query(models.PlatformData).filter(
         models.PlatformData.integration_id == integration_id,
         models.PlatformData.report_date == report_date,
+        models.PlatformData.type == type,
     ).delete()
     report_d = date.fromisoformat(report_date) if isinstance(report_date, str) else report_date
     for r in rows or []:
         row = models.PlatformData(
             integration_id=integration_id,
+            type=type,
             report_date=report_d,
             campaign_name=r.get("campaign_name"),
             campaign_type=r.get("campaign_type"),

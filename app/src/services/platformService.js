@@ -9,6 +9,7 @@ import {
   GET_DATA,
   SET_DATA,
   RUN_META_ETL,
+  RUN_GOOGLE_ETL,
 } from "./apis";
 
 export const AdService = async () => {
@@ -31,11 +32,12 @@ export const DeleteIntegrationService = async (data) => {
   return res.data;
 };
 
-export const GetDataService = async (workspaceId, { reportDate, reportDateFrom, reportDateTo } = {}) => {
+export const GetDataService = async (workspaceId, { reportDate, reportDateFrom, reportDateTo, type } = {}) => {
   const body = { workspace_id: workspaceId };
   if (reportDate != null) body.report_date = reportDate;
   if (reportDateFrom != null) body.report_date_from = reportDateFrom;
   if (reportDateTo != null) body.report_date_to = reportDateTo;
+  if (type != null && type !== "") body.type = type;
   const res = await apiAxiosWithToken.post(GET_DATA, body);
   return res.data;
 };
@@ -49,5 +51,12 @@ export const RunMetaEtlService = async (workspaceId, reportDate = null) => {
   const body = { workspace_id: workspaceId };
   if (reportDate != null) body.report_date = reportDate;
   const res = await apiAxiosWithToken.post(RUN_META_ETL, body);
+  return res.data;
+};
+
+export const RunGoogleEtlService = async (workspaceId, reportDate = null) => {
+  const body = { workspace_id: workspaceId };
+  if (reportDate != null) body.report_date = reportDate;
+  const res = await apiAxiosWithToken.post(RUN_GOOGLE_ETL, body);
   return res.data;
 };

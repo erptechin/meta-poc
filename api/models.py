@@ -21,11 +21,12 @@ class Integration(Base):
 
 
 class PlatformData(Base):
-    """One row per integration per report_date per campaign (metrics from Meta insights)."""
+    """One row per integration per report_date per campaign (metrics). type = meta | google | linkedin."""
     __tablename__ = "platform_data"
 
     id = Column(Integer, primary_key=True, index=True)
     integration_id = Column(Integer, ForeignKey("integration.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(String(32), nullable=False, default="meta", index=True)  # meta, google, linkedin
     report_date = Column(Date, nullable=True, index=True)
     campaign_name = Column(String(512), nullable=True)
     campaign_type = Column(String(128), nullable=True)

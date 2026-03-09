@@ -20,6 +20,7 @@ pip install -r requirements.txt
 - `META_ADS_CLIENT_ID`, `META_ADS_CLIENT_SECRET`, `META_ADS_REDIRECT_URI`, `BASE_APP_UI_URL` – for Meta OAuth and redirects
 - `META_API_VERSION` – Meta Graph API version (default `v23.0`)
 - `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_AUTH_REDIRECT_URI` – for Google Ads OAuth (ref: nyx-api)
+- `GOOGLE_ADS_DEVELOPER_TOKEN` – for Google Ads API (run-google-etl); get from Google Ads API Center.
 
 ## Run
 
@@ -65,18 +66,19 @@ pip install -r requirements.txt
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/platform-data/platform-data` | **Get** (by date): Body `{"workspace_id": N, optional "report_date", "report_date_from", "report_date_to"}`. Returns `{ success, workspace_id, data: [ rows ] }` ordered by `report_date`. **Set:** Body `{"workspace_id": N, "data": {"rows": [ { report_date, campaign_name, ... } ]}}`. |
-| POST | `/v1/platform-data/run-meta-etl` | Run Meta **insights** ETL for a date; save to `platform_data`. Body: `{"workspace_id": N, optional "report_date": "YYYY-MM-DD"}` (default: yesterday). |
+| POST | `/v1/platform-data/platform-data` | **Get:** Body `{"workspace_id": N, optional "report_date", "report_date_from", "report_date_to", "type"}`. Returns `{ success, workspace_id, data: [ rows with type ] }`. **Set:** Body `{"workspace_id": N, "data": {"rows": [ ... ]}}`. |
+| POST | `/v1/platform-data/run-meta-etl` | Run Meta insights ETL; save to `platform_data` (type=meta). Body: `{"workspace_id": N, optional "report_date"}`. |
+| POST | `/v1/platform-data/run-google-etl` | Run Google Ads insights ETL; save to `platform_data` (type=google). Body: `{"workspace_id": N, optional "report_date"}`. Requires `GOOGLE_ADS_DEVELOPER_TOKEN`. |
 
 ## Database
 
 - **Tables:** `integration`, `platform_data`
-- **platform_data:** One row per (integration_id, report_date, campaign): `report_date`, `campaign_name`, `campaign_type`, `source`, `impressions`, `clicks`, `cpm`, `cpc`, `ctr`, `amount_spent`, `data` (JSON). Fetch by `report_date` (or range). If you previously had the old schema (workspace_id + campaigns JSON), run `DROP TABLE platform_data;` then re-run `init_poc.sql` or let SQLAlchemy recreate the table.
+- **platform_data:** One row per (integration_id, report_date, campaign): `type` (meta | google | linkedin), `report_date`, `campaign_name`, `campaign_type`, `source`, `impressions`, `clicks`, `cpm`, `cpc`, `ctr`, `amount_spent`, `data` (JSON). Fetch by `report_date` (or range) and optional `type`. **Migration:** If the table already existed without `type`, run: `ALTER TABLE platform_data ADD COLUMN type VARCHAR(32) NOT NULL DEFAULT 'meta' AFTER integration_id;`
 
-## Meta ETL (`meta_extractor`)
+## Meta ETL (`meta_extractor`) and Google ETL (`google_extractor`)
 
-- **run_pipeline:** Full extract (campaigns, adsets, ads) → transform → return payload.
-- **run_insights_pipeline:** For a given `report_date`, fetches campaign insights (impressions, clicks, spend, cpm, cpc, ctr) from Meta Graph API and returns rows for `platform_data` table. Used by `run-meta-etl`.
+- **meta_extractor.run_insights_pipeline:** For a given `report_date`, fetches campaign insights from Meta Graph API; returns rows with `source=META`, saved as `type=meta`.
+- **google_extractor.run_insights_pipeline:** For a given `report_date`, fetches campaign metrics from Google Ads API (GAQL); returns rows with `source=GOOGLE`, saved as `type=google`. Requires `google-ads` package and `GOOGLE_ADS_DEVELOPER_TOKEN`.
 
 ## Optional: ngrok
 

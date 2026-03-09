@@ -45,11 +45,18 @@ class SetDataRequest(BaseModel):
     report_date: str | None = None
     report_date_from: str | None = None
     report_date_to: str | None = None
+    type: str | None = None  # meta | google | linkedin — filter get by platform type
 
 
 class SetDataResponse(BaseModel):
     success: bool = True
     workspace_id: int
+
+
+class RunEtlRequest(BaseModel):
+    """Request for run-meta-etl and run-google-etl: workspace_id and optional report_date (YYYY-MM-DD)."""
+    workspace_id: int = 1
+    report_date: str | None = None  # YYYY-MM-DD; default yesterday if omitted
 
 
 class GetDataResponse(BaseModel):

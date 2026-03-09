@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GetDataService, RunMetaEtlService } from "../services/platformService";
+import { GetDataService, RunMetaEtlService, RunGoogleEtlService } from "../services/platformService";
 import "./PlatformData.css";
 
 const WORKSPACE_ID = 1;
@@ -50,10 +50,11 @@ export default function PlatformData() {
   const [reportDate, setReportDate] = useState("");
   const [reportDateFrom, setReportDateFrom] = useState(() => getDefaultViewRange().from);
   const [reportDateTo, setReportDateTo] = useState(() => getDefaultViewRange().to);
+  const [dataType, setDataType] = useState(""); // "" = all, "meta", "google"
 
-  // Only send range when at least one is set; else show all. Fetch date is NOT used here—only for Run ETL.
+  // Fetch date is only for Run Meta/Google ETL — do NOT include in query params (changing it must not call platform-data API).
   const hasViewRange = reportDateFrom !== "" || reportDateTo !== "";
-  const queryParams = {};
+  const queryParams = { type: dataType || undefined };
   if (hasViewRange) {
     if (reportDateFrom) queryParams.reportDateFrom = reportDateFrom;
     if (reportDateTo) queryParams.reportDateTo = reportDateTo;
@@ -69,8 +70,15 @@ export default function PlatformData() {
     queryFn: () => GetDataService(WORKSPACE_ID, queryParams),
   });
 
-  const runEtlMutation = useMutation({
+  const runMetaEtlMutation = useMutation({
     mutationFn: () => RunMetaEtlService(WORKSPACE_ID, reportDate || null),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-data", WORKSPACE_ID] });
+    },
+  });
+
+  const runGoogleEtlMutation = useMutation({
+    mutationFn: () => RunGoogleEtlService(WORKSPACE_ID, reportDate || null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platform-data", WORKSPACE_ID] });
     },
@@ -111,7 +119,7 @@ export default function PlatformData() {
         <div>
           <h2 className="platform-data__title">Platform Data</h2>
           <p className="platform-data__intro">
-            Fetch data by report date. Run ETL to pull Meta campaign insights for a date and save to DB.
+            Fetch data by report date. Run Meta or Google ETL to pull campaign insights for a date and save to DB.
           </p>
         </div>
       </div>
@@ -131,13 +139,37 @@ export default function PlatformData() {
             />
             <button
               type="button"
-              className="platform-data__run-etl-btn"
-              onClick={() => runEtlMutation.mutate()}
-              disabled={runEtlMutation.isPending}
+              className="platform-data__run-etl-btn platform-data__run-etl-btn--meta"
+              onClick={() => runMetaEtlMutation.mutate()}
+              disabled={runMetaEtlMutation.isPending}
             >
-              {runEtlMutation.isPending ? "Running…" : "Run ETL"}
+              {runMetaEtlMutation.isPending ? "Running…" : "Run Meta ETL"}
+            </button>
+            <button
+              type="button"
+              className="platform-data__run-etl-btn platform-data__run-etl-btn--google"
+              onClick={() => runGoogleEtlMutation.mutate()}
+              disabled={runGoogleEtlMutation.isPending}
+            >
+              {runGoogleEtlMutation.isPending ? "Running…" : "Run Google ETL"}
             </button>
           </div>
+        </div>
+        <div className="platform-data__filter-divider" aria-hidden />
+        <div className="platform-data__filter-group">
+          <label className="platform-data__filter-label">
+            Data type
+          </label>
+          <select
+            className="platform-data__filter-select"
+            value={dataType}
+            onChange={(e) => setDataType(e.target.value)}
+            aria-label="Filter by platform type"
+          >
+            <option value="">All</option>
+            <option value="meta">Meta</option>
+            <option value="google">Google</option>
+          </select>
         </div>
         <div className="platform-data__filter-divider" aria-hidden />
         <div className="platform-data__filter-group platform-data__filter-group--view-range">
@@ -202,6 +234,7 @@ export default function PlatformData() {
                     <table className="platform-data__table">
                       <thead>
                         <tr>
+                          <th>Type</th>
                           <th>Fetch date</th>
                           <th>Campaign</th>
                           <th>Impressions</th>
@@ -215,6 +248,7 @@ export default function PlatformData() {
                       <tbody>
                         {rows.map((r, i) => (
                           <tr key={r.id ?? i}>
+                            <td className="platform-data__cell-type">{r.type ?? "—"}</td>
                             <td className="platform-data__cell-date">{formatDate(r.report_date)}</td>
                             <td className="platform-data__cell-name" title={r.campaign_name}>
                               {r.campaign_name ?? "—"}
@@ -239,7 +273,7 @@ export default function PlatformData() {
             <span className="platform-data__placeholder-icon" aria-hidden>
               📊
             </span>
-            <p>No data yet. Connect Meta in Platform Integration, then click Run ETL to fetch insights for a date (default: yesterday).</p>
+            <p>No data yet. Connect Meta or Google in Platform Integration, then use Run Meta ETL or Run Google ETL to fetch insights for a date (default: yesterday).</p>
           </div>
         )}
       </div>
