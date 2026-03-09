@@ -11,10 +11,10 @@ const PLATFORM_CONFIG = {
 };
 
 const IntegratedView = React.memo(function IntegratedView({ item }) {
-    const raw = item.ad_login_userinfo;
+    const raw = item.ads_userinfo;
     const userInfo = raw?.userInfo ?? (raw && (raw.name || raw.email) ? raw : null);
     const pictureUrl = userInfo?.picture?.data?.url ?? (typeof userInfo?.picture === "string" ? userInfo.picture : null);
-    const adAccounts = item.ads_account ?? raw?.adaccounts?.data ?? [];
+    const adAccounts = item.ads_accounts ?? raw?.adaccounts?.data ?? [];
 
     return (
         <div className="integrated-view">

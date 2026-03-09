@@ -69,10 +69,10 @@ def run_meta_etl(body: schemas.SetDataRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail="Meta integration has no access token. Reconnect Meta in Platform Integration.",
         )
-    ads_account = meta.ads_account or []
+    ads_accounts = meta.ads_accounts or []
     ad_account_ids = [
         str(a.get("account_id") or a.get("id") or "")
-        for a in ads_account
+        for a in ads_accounts
         if a.get("account_id") or a.get("id")
     ]
     result = run_pipeline(

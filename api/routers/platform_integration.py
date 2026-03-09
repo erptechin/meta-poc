@@ -21,7 +21,6 @@ BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
 
 
 def _integration_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
-    """Redirect to app platform integration result page (single path for success/failure)."""
     base = (BASE_APP_UI_URL or "").rstrip("/")
     q = f"outcome={quote(outcome)}"
     if message:
@@ -29,36 +28,32 @@ def _integration_result_redirect(outcome: str, message: str = "") -> RedirectRes
     return RedirectResponse(url=f"{base}/integration-result?{q}", status_code=302)
 
 
-def get_httpx_client(request: Request):
+def _get_httpx_client(request: Request):
     return request.app.state.httpx_client
 
 
 def _format_status_row(integration):
-    """Format Integration for GET /status response."""
     return {
         "id": integration.id,
         "workspace_id": 1,
         "status": integration.status,
         "ad_platform": integration.ad_platform,
-        "email": integration.email,
-        "ad_login_userinfo": integration.ad_login_userinfo,
-        "ads_account": integration.ads_account or [],
+        "ads_userinfo": integration.ads_userinfo,
+        "ads_accounts": integration.ads_accounts or [],
+        "refresh_tokens": integration.refresh_tokens,
         "last_authenticated": integration.last_authenticated.isoformat() if integration.last_authenticated else None,
         "updated_at": integration.updated_at.isoformat() if integration.updated_at else None,
     }
 
 
 @router.get("/status", response_model=list[dict])
-def get_platform_integration_status_default(db: Session = Depends(get_db)):
-    """GET /status - list integrations for workspace 1."""
+def get_platform_integration_status(db: Session = Depends(get_db)):
     rows = crud.get_integrations_by_workspace(db)
     return [_format_status_row(r) for r in rows]
 
 
-
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
 def meta_auth(body: schemas.MetaAuthRequest | None = Body(None)):
-    """POST /meta/auth - return Meta OAuth URL (workspace/user not required)."""
     state = quote("{}")
     scope = "public_profile,email,ads_management,ads_read,pages_show_list,business_management,pages_read_engagement,catalog_management,instagram_manage_insights,instagram_basic"
     auth_url = (
@@ -71,15 +66,6 @@ def meta_auth(body: schemas.MetaAuthRequest | None = Body(None)):
     return schemas.MetaAuthResponse(authUrl=auth_url)
 
 
-@router.post("/revoke-access", response_model=schemas.RevokeAccessResponse)
-def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_db)):
-    """POST /v1/platform-integration/revoke-access - revoke integration by integration_id."""
-    row = crud.revoke_integration(db, integration_id=body.integration_id)
-    if not row:
-        raise HTTPException(status_code=400, detail="Error revoking access")
-    return schemas.RevokeAccessResponse(status="success", message="Access revoked")
-
-
 async def _fetch_instagram_accounts(client: httpx.AsyncClient, business_id: str, access_token: str) -> list:
     try:
         r = await client.get(
@@ -88,7 +74,7 @@ async def _fetch_instagram_accounts(client: httpx.AsyncClient, business_id: str,
             headers={"Authorization": f"Bearer {access_token}"},
         )
         r.raise_for_status()
-        return (r.json().get("data") or [])
+        return r.json().get("data") or []
     except Exception:
         return []
 
@@ -98,9 +84,8 @@ async def meta_auth_callback(
     code: str | None = Query(None),
     state: str | None = Query(None),
     db: Session = Depends(get_db),
-    client: httpx.AsyncClient = Depends(get_httpx_client),
+    client: httpx.AsyncClient = Depends(_get_httpx_client),
 ):
-    """GET /v1/platform-integration/meta/auth/callback - OAuth callback from Meta. Redirects to app."""
     if not code or not state:
         return _integration_result_redirect("failure", "Invalid callback parameters.")
     try:
@@ -123,6 +108,8 @@ async def meta_auth_callback(
         if not long_lived:
             raise ValueError("No access_token in long-lived response")
         tokens = {"access_token": long_lived}
+        # Meta does not return a separate refresh_token. Long-lived response includes token_type, expires_in (seconds).
+        # To refresh: call same endpoint with grant_type=fb_exchange_token and fb_exchange_token=<current long-lived token>.
         refresh_tokens = {k: v for k, v in long_lived_resp.items() if k != "access_token"} or None
 
         me_r = await client.get(
@@ -142,11 +129,10 @@ async def meta_auth_callback(
         page_ok = False
         insta_ok = False
 
-        # Parallel fetch: promote_pages + instagram_accounts per ad account
         async def _empty_insta():
             return []
 
-        async def fetch_pages_and_insta(acc):
+        async def _fetch_pages_and_insta(acc):
             pid = acc.get("id")
             biz = acc.get("business")
             bid = biz.get("id") if isinstance(biz, dict) else None
@@ -156,11 +142,12 @@ async def meta_auth_callback(
             )
             insta_task = _fetch_instagram_accounts(client, bid, long_lived) if bid else _empty_insta()
             pr, il = await asyncio.gather(pr_task, insta_task)
-            return acc, pr, (il if isinstance(il, list) else [])
+            il = il if isinstance(il, list) else []
+            return acc, pr, il
 
         if adaccounts_data:
             results = await asyncio.gather(
-                *[fetch_pages_and_insta(acc) for acc in adaccounts_data],
+                *[_fetch_pages_and_insta(acc) for acc in adaccounts_data],
                 return_exceptions=True,
             )
             for item in results:
@@ -215,8 +202,20 @@ async def meta_auth_callback(
         elif not page_ok or not insta_ok:
             msg = "For some ad accounts pageId or instagram accounts are not found"
 
-        ads_list = [{"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")} for a in adaccounts_data if a.get("account_id")]
-        crud.create_or_update_meta_integration(db=db, workspace_id=workspace_id, email=str(user_info.get("id", "")), ad_login_userinfo=user_detail, tokens=tokens, ads_account=ads_list, refresh_tokens=refresh_tokens)
+        ads_list = [
+            {"id": a.get("id"), "account_id": a.get("account_id"), "account_name": a.get("name"), "currency_code": a.get("currency"), "timezone_id": a.get("timezone_id"), "time_zone": a.get("timezone_name")}
+            for a in adaccounts_data if a.get("account_id")
+        ]
+        # If workspace_id already has a META integration in DB, update it; else insert new row.
+        crud.create_or_update_meta_integration(db=db, workspace_id=workspace_id, ads_userinfo=user_detail, tokens=tokens, ads_accounts=ads_list, refresh_tokens=refresh_tokens)
         return _integration_result_redirect("success", msg)
     except Exception as ex:
         return _integration_result_redirect("failure", str(ex) or "Unexpected error integrating META.")
+
+
+@router.post("/revoke-access", response_model=schemas.RevokeAccessResponse)
+def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_db)):
+    row = crud.revoke_integration(db, integration_id=body.integration_id)
+    if not row:
+        raise HTTPException(status_code=400, detail="Error revoking access")
+    return schemas.RevokeAccessResponse(status="success", message="Access revoked")

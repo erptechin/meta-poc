@@ -11,9 +11,8 @@ class Integration(Base):
     workspace_id = Column(Integer, nullable=False, index=True, default=1)
     ad_platform = Column(String(64), nullable=False, index=True)  # META, GOOGLE, LINKEDIN, etc.
     status = Column(Boolean, default=True, nullable=False)
-    email = Column(String(255), nullable=True)  # platform user id (e.g. Meta id)
-    ad_login_userinfo = Column(JSON, nullable=True)  # userInfo, accounts, adaccounts, etc.
-    ads_account = Column(JSON, nullable=True)  # list of { id, account_id, account_name }
+    ads_userinfo = Column(JSON, nullable=True)  # userInfo, accounts, adaccounts, etc.
+    ads_accounts = Column(JSON, nullable=True)  # list of { id, account_id, account_name }
     tokens = Column(JSON, nullable=True)  # { access_token: long_lived_token }
     refresh_tokens = Column(JSON, nullable=True)  # token metadata: expires_in, token_type, refresh_token (if any)
     access_removed = Column(Boolean, default=False, nullable=False)

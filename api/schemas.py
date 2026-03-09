@@ -10,9 +10,8 @@ class IntegrationStatusResponse(BaseModel):
     workspace_id: int
     status: bool
     ad_platform: str
-    email: str | None
-    ad_login_userinfo: dict[str, Any] | None
-    ads_account: list[dict[str, Any]] | None
+    ads_userinfo: dict[str, Any] | None
+    ads_accounts: list[dict[str, Any]] | None
     last_authenticated: datetime | None
     updated_at: datetime | None
 

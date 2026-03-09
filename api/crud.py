@@ -28,13 +28,13 @@ def revoke_integration(db: Session, integration_id: int):
     return row
 
 
-def get_meta_integration_by_workspace_email(db: Session, workspace_id: int, email: str):
+def get_meta_integration_by_workspace(db: Session, workspace_id: int):
+    """Return the META integration for the workspace if any (used for update-or-insert)."""
     return (
         db.query(models.Integration)
         .filter(
             models.Integration.workspace_id == workspace_id,
             models.Integration.ad_platform == "META",
-            models.Integration.email == email,
         )
         .first()
     )
@@ -43,19 +43,19 @@ def get_meta_integration_by_workspace_email(db: Session, workspace_id: int, emai
 def create_or_update_meta_integration(
     db: Session,
     workspace_id: int,
-    email: str,
-    ad_login_userinfo: dict,
+    ads_userinfo: dict,
     tokens: dict,
-    ads_account: list,
+    ads_accounts: list,
     refresh_tokens: dict | None = None,
 ):
+    """If workspace_id already has a META integration row, update it; else insert new row."""
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
-    row = get_meta_integration_by_workspace_email(db, workspace_id, email)
+    row = get_meta_integration_by_workspace(db, workspace_id)
     if row:
-        row.ad_login_userinfo = ad_login_userinfo
+        row.ads_userinfo = ads_userinfo
         row.tokens = tokens
-        row.ads_account = ads_account
+        row.ads_accounts = ads_accounts
         row.refresh_tokens = refresh_tokens
         row.access_removed = False
         row.last_authenticated = now
@@ -66,10 +66,9 @@ def create_or_update_meta_integration(
         workspace_id=workspace_id,
         ad_platform="META",
         status=True,
-        email=email,
-        ad_login_userinfo=ad_login_userinfo,
+        ads_userinfo=ads_userinfo,
         tokens=tokens,
-        ads_account=ads_account,
+        ads_accounts=ads_accounts,
         refresh_tokens=refresh_tokens,
         access_removed=False,
         last_authenticated=now,
