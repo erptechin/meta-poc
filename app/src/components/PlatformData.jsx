@@ -5,6 +5,16 @@ import "./PlatformData.css";
 
 const WORKSPACE_ID = 1;
 
+function getDefaultViewRange() {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return {
+    from: yesterday.toISOString().slice(0, 10),
+    to: today.toISOString().slice(0, 10),
+  };
+}
+
 function formatDate(iso) {
   if (!iso) return "—";
   try {
@@ -38,13 +48,17 @@ export default function PlatformData() {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(true);
   const [reportDate, setReportDate] = useState("");
-  const [reportDateFrom, setReportDateFrom] = useState("");
-  const [reportDateTo, setReportDateTo] = useState("");
+  const [reportDateFrom, setReportDateFrom] = useState(() => getDefaultViewRange().from);
+  const [reportDateTo, setReportDateTo] = useState(() => getDefaultViewRange().to);
 
+  // Only send range when at least one is set; else show all
+  const hasViewRange = reportDateFrom !== "" || reportDateTo !== "";
   const queryParams = {};
   if (reportDate) queryParams.reportDate = reportDate;
-  if (reportDateFrom) queryParams.reportDateFrom = reportDateFrom;
-  if (reportDateTo) queryParams.reportDateTo = reportDateTo;
+  if (hasViewRange) {
+    if (reportDateFrom) queryParams.reportDateFrom = reportDateFrom;
+    if (reportDateTo) queryParams.reportDateTo = reportDateTo;
+  }
 
   const {
     data,
@@ -101,44 +115,75 @@ export default function PlatformData() {
             Fetch data by report date. Run ETL to pull Meta campaign insights for a date and save to DB.
           </p>
         </div>
-        <div className="platform-data__actions">
-          <div className="platform-data__filters">
-            <label>
-              <span>Report date</span>
-              <input
-                type="date"
-                value={reportDate}
-                onChange={(e) => setReportDate(e.target.value)}
-                title="Filter by single date"
-              />
-            </label>
-            <label>
-              <span>From</span>
-              <input
-                type="date"
-                value={reportDateFrom}
-                onChange={(e) => setReportDateFrom(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>To</span>
-              <input
-                type="date"
-                value={reportDateTo}
-                onChange={(e) => setReportDateTo(e.target.value)}
-              />
-            </label>
+      </div>
+
+      <div className="platform-data__filter-bar">
+        <div className="platform-data__filter-group platform-data__filter-group--primary">
+          <label className="platform-data__filter-label">
+            Fetch date
+          </label>
+          <div className="platform-data__filter-row">
+            <input
+              type="date"
+              className="platform-data__filter-input"
+              value={reportDate}
+              onChange={(e) => setReportDate(e.target.value)}
+              title="Filter by single date / ETL runs for this date"
+            />
+            <button
+              type="button"
+              className="platform-data__run-etl-btn"
+              onClick={() => runEtlMutation.mutate()}
+              disabled={runEtlMutation.isPending}
+            >
+              {runEtlMutation.isPending ? "Running…" : "Run ETL"}
+            </button>
           </div>
-          <button
-            type="button"
-            className="platform-data__refresh-btn"
-            onClick={() => runEtlMutation.mutate()}
-            disabled={runEtlMutation.isPending}
-          >
-            {runEtlMutation.isPending ? "Running ETL…" : "Run ETL"}
-          </button>
+        </div>
+        <div className="platform-data__filter-divider" aria-hidden />
+        <div className="platform-data__filter-group">
+          <label className="platform-data__filter-label">
+            View range
+          </label>
+          <div className="platform-data__filter-range">
+            <input
+              type="date"
+              className="platform-data__filter-input"
+              value={reportDateFrom}
+              onChange={(e) => setReportDateFrom(e.target.value)}
+              placeholder="From"
+              aria-label="From date"
+            />
+            <span className="platform-data__filter-range-sep">–</span>
+            <input
+              type="date"
+              className="platform-data__filter-input"
+              value={reportDateTo}
+              onChange={(e) => setReportDateTo(e.target.value)}
+              placeholder="To"
+              aria-label="To date"
+            />
+          </div>
+          <p className="platform-data__filter-hint" aria-live="polite">
+            {hasViewRange
+              ? `Showing ${formatDate(reportDateFrom)} – ${formatDate(reportDateTo)}`
+              : "Showing all dates"}
+          </p>
+          {hasViewRange && (
+            <button
+              type="button"
+              className="platform-data__filter-clear"
+              onClick={() => {
+                setReportDateFrom("");
+                setReportDateTo("");
+              }}
+            >
+              Show all
+            </button>
+          )}
         </div>
       </div>
+
       <div className="platform-data__content">
         {hasData ? (
           <div className="platform-data__sections">
@@ -161,7 +206,7 @@ export default function PlatformData() {
                     <table className="platform-data__table">
                       <thead>
                         <tr>
-                          <th>Report date</th>
+                          <th>Fetch date</th>
                           <th>Campaign</th>
                           <th>Impressions</th>
                           <th>Clicks</th>

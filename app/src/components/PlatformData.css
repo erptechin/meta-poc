@@ -36,37 +36,149 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Filter bar: Report date + Run ETL, then View range */
+.platform-data__filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0 1.5rem;
+  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
+  background: var(--pd-card-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.platform-data__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-
-.platform-data__filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.platform-data__filters label {
+.platform-data__filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
+}
+
+.platform-data__filter-group--primary {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.platform-data__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.platform-data__filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.platform-data__filter-input {
+  padding: 0.5rem 0.65rem;
+  min-width: 10rem;
+  font-size: 0.9rem;
+  color: var(--pd-text);
+  background: var(--pd-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 8px;
+  font-family: var(--pd-font);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.platform-data__filter-input:hover {
+  border-color: #cbd5e1;
+}
+
+.platform-data__filter-input:focus {
+  outline: none;
+  border-color: var(--pd-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.platform-data__run-etl-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--pd-accent, #3b82f6);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--pd-font);
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.platform-data__run-etl-btn:hover:not(:disabled) {
+  background: var(--pd-accent-hover, #2563eb);
+}
+
+.platform-data__run-etl-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.platform-data__run-etl-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.platform-data__filter-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 2.5rem;
+  background: var(--pd-border);
+}
+
+@media (max-width: 640px) {
+  .platform-data__filter-divider {
+    width: 100%;
+    height: 1px;
+    min-height: 0;
+  }
+}
+
+.platform-data__filter-range {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.platform-data__filter-range .platform-data__filter-input {
+  min-width: 9rem;
+}
+
+.platform-data__filter-range-sep {
+  font-size: 0.85rem;
+  color: var(--pd-text-muted);
+  font-weight: 500;
+}
+
+.platform-data__filter-hint {
+  margin: 0.35rem 0 0;
   font-size: 0.8rem;
   color: var(--pd-text-muted);
 }
 
-.platform-data__filters input[type="date"] {
-  padding: 0.4rem 0.5rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--pd-border);
-  border-radius: 6px;
+.platform-data__filter-clear {
+  margin-top: 0.25rem;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pd-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
   font-family: var(--pd-font);
+}
+
+.platform-data__filter-clear:hover {
+  text-decoration: underline;
 }
 
 .platform-data__refresh-btn {
