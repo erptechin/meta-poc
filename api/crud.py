@@ -79,6 +79,57 @@ def create_or_update_meta_integration(
     return new_row
 
 
+def get_google_integration_by_workspace(db: Session, workspace_id: int):
+    """Return the GOOGLE integration for the workspace if any (used for update-or-insert)."""
+    return (
+        db.query(models.Integration)
+        .filter(
+            models.Integration.workspace_id == workspace_id,
+            models.Integration.ad_platform == "GOOGLE",
+        )
+        .first()
+    )
+
+
+def create_or_update_google_integration(
+    db: Session,
+    workspace_id: int,
+    ads_userinfo: dict,
+    tokens: dict,
+    ads_accounts: list,
+    refresh_tokens: dict | None = None,
+):
+    """If workspace_id already has a GOOGLE integration row, update it; else insert new row."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    row = get_google_integration_by_workspace(db, workspace_id)
+    if row:
+        row.ads_userinfo = ads_userinfo
+        row.tokens = tokens
+        row.ads_accounts = ads_accounts
+        row.refresh_tokens = refresh_tokens
+        row.access_removed = False
+        row.last_authenticated = now
+        db.commit()
+        db.refresh(row)
+        return row
+    new_row = models.Integration(
+        workspace_id=workspace_id,
+        ad_platform="GOOGLE",
+        status=True,
+        ads_userinfo=ads_userinfo,
+        tokens=tokens,
+        ads_accounts=ads_accounts,
+        refresh_tokens=refresh_tokens,
+        access_removed=False,
+        last_authenticated=now,
+    )
+    db.add(new_row)
+    db.commit()
+    db.refresh(new_row)
+    return new_row
+
+
 # ----- Platform Data -----
 def get_platform_data(db: Session, workspace_id: int):
     return db.query(models.PlatformData).filter(models.PlatformData.workspace_id == workspace_id).first()

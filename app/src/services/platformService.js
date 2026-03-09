@@ -4,6 +4,7 @@ import {
 import {
   ADS,
   META_AD,
+  GOOGLE_AD,
   REVOKE_ACCESS,
   GET_DATA,
   SET_DATA,
@@ -17,6 +18,11 @@ export const AdService = async () => {
 
 export const MetaService = async (data) => {
   const res = await apiAxiosWithToken.post(META_AD, data);
+  return res.data;
+};
+
+export const GoogleService = async (data) => {
+  const res = await apiAxiosWithToken.post(GOOGLE_AD, data);
   return res.data;
 };
 

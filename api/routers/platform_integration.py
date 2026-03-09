@@ -19,6 +19,17 @@ APP_SECRET = os.getenv("META_ADS_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("META_ADS_REDIRECT_URI")
 BASE_APP_UI_URL = os.getenv("BASE_APP_UI_URL")
 
+# Google Ads OAuth (ref: nyx-api googleAdsRoutes.js, .env)
+GOOGLE_ADS_CLIENT_ID = os.getenv("GOOGLE_ADS_CLIENT_ID")
+GOOGLE_ADS_CLIENT_SECRET = os.getenv("GOOGLE_ADS_CLIENT_SECRET")
+GOOGLE_ADS_REDIRECT_URI = os.getenv("GOOGLE_ADS_AUTH_REDIRECT_URI", "http://localhost:5005/v1/campaign-ads/google/auth/callback")
+GOOGLE_OAUTH_SCOPES = [
+    "https://www.googleapis.com/auth/adwords",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/content",
+]
+
 
 def _integration_result_redirect(outcome: str, message: str = "") -> RedirectResponse:
     base = (BASE_APP_UI_URL or "").rstrip("/")
@@ -48,12 +59,22 @@ def _format_status_row(integration):
 
 @router.get("/status", response_model=list[dict])
 def get_platform_integration_status(db: Session = Depends(get_db)):
+    """
+    GET /v1/campaign-ads/status
+    List all integrations for the default workspace (workspace_id=1).
+    Returns list of integration objects with id, workspace_id, status, ad_platform, ads_userinfo, ads_accounts, refresh_tokens, last_authenticated, updated_at.
+    """
     rows = crud.get_integrations_by_workspace(db)
     return [_format_status_row(r) for r in rows]
 
 
 @router.post("/meta/auth", response_model=schemas.MetaAuthResponse)
 def meta_auth(body: schemas.MetaAuthRequest | None = Body(None)):
+    """
+    POST /v1/campaign-ads/meta/auth
+    Returns the Meta (Facebook) OAuth URL. Client should open this URL in a popup; after user authorizes, Meta redirects to /meta/auth/callback.
+    Response: { "authUrl": "https://www.facebook.com/..." }.
+    """
     state = quote("{}")
     scope = "public_profile,email,ads_management,ads_read,pages_show_list,business_management,pages_read_engagement,catalog_management,instagram_manage_insights,instagram_basic"
     auth_url = (
@@ -86,6 +107,10 @@ async def meta_auth_callback(
     db: Session = Depends(get_db),
     client: httpx.AsyncClient = Depends(_get_httpx_client),
 ):
+    """
+    GET /v1/campaign-ads/meta/auth/callback
+    OAuth callback: Meta redirects here after user authorizes. Exchanges code for short- then long-lived token, fetches user/ad accounts, upserts META integration for workspace_id=1, then redirects to app integration-result page.
+    """
     if not code or not state:
         return _integration_result_redirect("failure", "Invalid callback parameters.")
     try:
@@ -213,8 +238,103 @@ async def meta_auth_callback(
         return _integration_result_redirect("failure", str(ex) or "Unexpected error integrating META.")
 
 
+# ----- Google Ads OAuth (ref: nyx-api routes/campaignAds/googleAdsRoutes.js) -----
+@router.post("/google/auth", response_model=schemas.MetaAuthResponse)
+def google_auth(body: schemas.MetaAuthRequest | None = Body(None)):
+    """
+    POST /v1/campaign-ads/google/auth
+    Returns the Google Ads OAuth URL. Client should open this URL in a popup; after user authorizes, Google redirects to /google/auth/callback.
+    Response: { "authUrl": "https://accounts.google.com/..." }. Uses GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_AUTH_REDIRECT_URI.
+    """
+    state = quote("{}")
+    scope = " ".join(GOOGLE_OAUTH_SCOPES)
+    auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth"
+        f"?client_id={quote(GOOGLE_ADS_CLIENT_ID or '')}"
+        f"&redirect_uri={quote(GOOGLE_ADS_REDIRECT_URI or '')}"
+        "&response_type=code"
+        f"&scope={quote(scope)}"
+        f"&state={state}"
+        "&access_type=offline"
+        "&prompt=consent"
+    )
+    return schemas.MetaAuthResponse(authUrl=auth_url)
+
+
+@router.get("/google/auth/callback")
+async def google_auth_callback(
+    code: str | None = Query(None),
+    state: str | None = Query(None),
+    db: Session = Depends(get_db),
+    client: httpx.AsyncClient = Depends(_get_httpx_client),
+):
+    """
+    GET /v1/campaign-ads/google/auth/callback
+    OAuth callback: Google redirects here after user authorizes. Exchanges code for tokens, fetches userinfo, upserts GOOGLE integration for workspace_id=1, then redirects to app integration-result page.
+    """
+    if not code or not state:
+        return _integration_result_redirect("failure", "Invalid callback parameters.")
+    try:
+        workspace_id = 1
+        # Exchange code for tokens (ref: nyx-api oauth2Client.getToken)
+        token_resp = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": GOOGLE_ADS_CLIENT_ID,
+                "client_secret": GOOGLE_ADS_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_ADS_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_resp.raise_for_status()
+        tokens_data = token_resp.json()
+        access_token = tokens_data.get("access_token")
+        if not access_token:
+            raise ValueError("No access_token in token response")
+        tokens = {"access_token": access_token}
+        if tokens_data.get("refresh_token"):
+            tokens["refresh_token"] = tokens_data["refresh_token"]
+        refresh_tokens = {k: v for k, v in tokens_data.items() if k != "access_token"} or None
+
+        # Fetch user info (ref: nyx-api axios.get userinfo)
+        userinfo_resp = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo_resp.raise_for_status()
+        user_info = userinfo_resp.json()
+
+        user_detail = {
+            "userInfo": user_info,
+            "accounts": {"data": []},
+            "adaccounts": None,
+        }
+        ads_list = []
+
+        # If workspace_id already has a GOOGLE integration in DB, update it; else insert new row.
+        crud.create_or_update_google_integration(
+            db=db,
+            workspace_id=workspace_id,
+            ads_userinfo=user_detail,
+            tokens=tokens,
+            ads_accounts=ads_list,
+            refresh_tokens=refresh_tokens,
+        )
+        return _integration_result_redirect("success", "")
+    except Exception as ex:
+        return _integration_result_redirect("failure", str(ex) or "Unexpected error integrating Google.")
+
+
+# ----- Revoke integration -----
 @router.post("/revoke-access", response_model=schemas.RevokeAccessResponse)
 def revoke_access(body: schemas.RevokeAccessRequest, db: Session = Depends(get_db)):
+    """
+    POST /v1/campaign-ads/revoke-access
+    Revoke (soft-delete) an integration by integration_id. Body: { "integration_id": N }.
+    Sets access_removed=True for the integration. Returns { "status": "success", "message": "Access revoked" }.
+    """
     row = crud.revoke_integration(db, integration_id=body.integration_id)
     if not row:
         raise HTTPException(status_code=400, detail="Error revoking access")

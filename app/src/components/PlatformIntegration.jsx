@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { AdService, MetaService, DeleteIntegrationService } from "../services/platformService";
+import { AdService, MetaService, GoogleService, DeleteIntegrationService } from "../services/platformService";
 import "./PlatformIntegration.css";
 
 const PLATFORM_CONFIG = {
@@ -92,6 +92,17 @@ export default function PlatformIntegration() {
         },
     });
 
+    const mutateGoogle = useMutation({
+        mutationFn: GoogleService,
+        onSuccess: (response) => {
+            window.open(response.authUrl, "_blank", "popup,width=900,height=600");
+            adRefetch();
+        },
+        onError: (err) => {
+            console.error("Google auth failed:", err);
+        },
+    });
+
     const mutateDelete = useMutation({
         mutationFn: DeleteIntegrationService,
         onSuccess: () => adRefetch(),
@@ -101,10 +112,12 @@ export default function PlatformIntegration() {
     const handleAddAccount = useCallback((platformName) => {
         if (platformName === "META") {
             mutateMeta.mutate({});
+        } else if (platformName === "GOOGLE") {
+            mutateGoogle.mutate({});
         } else {
             toast.error(`Integration not supported for ${platformName}`);
         }
-    }, [mutateMeta]);
+    }, [mutateMeta, mutateGoogle]);
 
     const handleDelete = useCallback((id) => {
         if (id == null) return;
@@ -179,9 +192,9 @@ export default function PlatformIntegration() {
                                     type="button"
                                     className="platform-list__btn platform-list__btn--integrate"
                                     onClick={() => handleAddAccount(item.name)}
-                                    disabled={mutateMeta.isPending}
+                                    disabled={mutateMeta.isPending || mutateGoogle.isPending}
                                 >
-                                    {mutateMeta.isPending ? "Connecting…" : "Integrate now"}
+                                    {(mutateMeta.isPending || mutateGoogle.isPending) ? "Connecting…" : "Integrate now"}
                                 </button>
                             )}
                         </div>

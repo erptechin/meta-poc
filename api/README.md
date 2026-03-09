@@ -19,6 +19,7 @@ pip install -r requirements.txt
 - `MYSQL_DATABASE_URL` – MySQL URL used when `DATABASE_URL` is not MySQL (optional).
 - `META_ADS_CLIENT_ID`, `META_ADS_CLIENT_SECRET`, `META_ADS_REDIRECT_URI`, `BASE_APP_UI_URL` – for Meta OAuth and redirects
 - `META_API_VERSION` – Meta Graph API version (default `v23.0`)
+- `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_AUTH_REDIRECT_URI` – for Google Ads OAuth (ref: nyx-api)
 
 ## Run
 
@@ -56,6 +57,8 @@ pip install -r requirements.txt
 | GET | `/v1/campaign-ads/status` | List integrations (workspace 1) |
 | POST | `/v1/campaign-ads/meta/auth` | Get Meta OAuth URL |
 | GET | `/v1/campaign-ads/meta/auth/callback` | OAuth callback (Meta redirects here) |
+| POST | `/v1/campaign-ads/google/auth` | Get Google Ads OAuth URL |
+| GET | `/v1/campaign-ads/google/auth/callback` | OAuth callback (Google redirects here) |
 | POST | `/v1/campaign-ads/revoke-access` | Revoke integration. Body: `{"integration_id": N}` |
 
 ### Platform Data
