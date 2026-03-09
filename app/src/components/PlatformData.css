@@ -149,6 +149,19 @@
   gap: 0.4rem;
 }
 
+.platform-data__filter-range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.platform-data__filter-range-row .platform-data__filter-clear {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
 .platform-data__filter-range .platform-data__filter-input {
   min-width: 9rem;
 }

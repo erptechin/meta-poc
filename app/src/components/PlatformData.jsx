@@ -51,10 +51,9 @@ export default function PlatformData() {
   const [reportDateFrom, setReportDateFrom] = useState(() => getDefaultViewRange().from);
   const [reportDateTo, setReportDateTo] = useState(() => getDefaultViewRange().to);
 
-  // Only send range when at least one is set; else show all
+  // Only send range when at least one is set; else show all. Fetch date is NOT used here—only for Run ETL.
   const hasViewRange = reportDateFrom !== "" || reportDateTo !== "";
   const queryParams = {};
-  if (reportDate) queryParams.reportDate = reportDate;
   if (hasViewRange) {
     if (reportDateFrom) queryParams.reportDateFrom = reportDateFrom;
     if (reportDateTo) queryParams.reportDateTo = reportDateTo;
@@ -141,46 +140,43 @@ export default function PlatformData() {
           </div>
         </div>
         <div className="platform-data__filter-divider" aria-hidden />
-        <div className="platform-data__filter-group">
+        <div className="platform-data__filter-group platform-data__filter-group--view-range">
           <label className="platform-data__filter-label">
             View range
           </label>
-          <div className="platform-data__filter-range">
-            <input
-              type="date"
-              className="platform-data__filter-input"
-              value={reportDateFrom}
-              onChange={(e) => setReportDateFrom(e.target.value)}
-              placeholder="From"
-              aria-label="From date"
-            />
-            <span className="platform-data__filter-range-sep">–</span>
-            <input
-              type="date"
-              className="platform-data__filter-input"
-              value={reportDateTo}
-              onChange={(e) => setReportDateTo(e.target.value)}
-              placeholder="To"
-              aria-label="To date"
-            />
+          <div className="platform-data__filter-range-row">
+            <div className="platform-data__filter-range">
+              <input
+                type="date"
+                className="platform-data__filter-input"
+                value={reportDateFrom}
+                onChange={(e) => setReportDateFrom(e.target.value)}
+                placeholder="From"
+                aria-label="From date"
+              />
+              <span className="platform-data__filter-range-sep">–</span>
+              <input
+                type="date"
+                className="platform-data__filter-input"
+                value={reportDateTo}
+                onChange={(e) => setReportDateTo(e.target.value)}
+                placeholder="To"
+                aria-label="To date"
+              />
+            </div>
+            {hasViewRange && (
+              <button
+                type="button"
+                className="platform-data__filter-clear"
+                onClick={() => {
+                  setReportDateFrom("");
+                  setReportDateTo("");
+                }}
+              >
+                Show all
+              </button>
+            )}
           </div>
-          <p className="platform-data__filter-hint" aria-live="polite">
-            {hasViewRange
-              ? `Showing ${formatDate(reportDateFrom)} – ${formatDate(reportDateTo)}`
-              : "Showing all dates"}
-          </p>
-          {hasViewRange && (
-            <button
-              type="button"
-              className="platform-data__filter-clear"
-              onClick={() => {
-                setReportDateFrom("");
-                setReportDateTo("");
-              }}
-            >
-              Show all
-            </button>
-          )}
         </div>
       </div>
 
